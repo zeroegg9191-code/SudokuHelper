@@ -1,0 +1,1938 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>SudokuHelper · 异形数独</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#161B2E; --muted:#7A8296; --line:#E9ECF4; --bg:#F4F6FB; --card:#fff;
+  --accent:#4F46E5; --accent2:#7C3AED; --green:#15803D; --red:#DC2626; --amber:#B45309;
+  --shadow:0 1px 2px rgba(16,24,40,.04),0 10px 28px -14px rgba(16,24,40,.18);
+}
+html,body{height:100%}
+body{
+  font-family:"Microsoft YaHei UI","Microsoft YaHei","Segoe UI",system-ui,sans-serif;
+  background:radial-gradient(900px 500px at 10% -10%,#EDEBFF 0%,rgba(237,235,255,0) 55%),
+             radial-gradient(800px 460px at 100% 0%,#E6F0FF 0%,rgba(230,240,255,0) 50%),
+             var(--bg);
+  color:var(--ink); -webkit-font-smoothing:antialiased; min-height:100%;
+}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+input[type=range]{accent-color:var(--accent)}
+.app{max-width:1120px;margin:0 auto;padding:16px 16px 40px}
+
+/* top bar */
+.topbar{display:flex;align-items:center;gap:12px;padding:6px 4px 14px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px}
+.logo{width:32px;height:32px;border-radius:10px;background:linear-gradient(140deg,#6366F1,#8B5CF6);
+  display:grid;grid-template-columns:repeat(3,3px);grid-auto-rows:3px;gap:2.5px;place-content:center;
+  box-shadow:0 6px 14px -6px rgba(99,102,241,.8)}
+.logo i{width:3px;height:3px;border-radius:1px;background:#fff;display:block}
+.brand b{font-size:17px;letter-spacing:.2px}
+.tabs{display:flex;background:#EEF0F7;border-radius:11px;padding:3px;gap:2px}
+.tabs button{padding:7px 15px;border-radius:9px;font-size:13px;font-weight:500;color:#6B7280}
+.tabs button.on{background:#fff;color:#3F3FD1;font-weight:700;box-shadow:0 1px 3px rgba(16,24,40,.14)}
+.grow{flex:1}
+.chip{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 11px;border-radius:9px;
+  background:#fff;border:1px solid var(--line);font-size:12px;color:#4B5265;font-weight:600}
+.chip .dot{width:7px;height:7px;border-radius:2px;background:linear-gradient(140deg,#7C3AED,#EC4899)}
+
+/* layout */
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:16px;align-items:start}
+.layout>*{min-width:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}
+.card.pad{padding:14px 15px}
+.card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.card-head .t{font-size:13px;font-weight:700}
+.muted{color:var(--muted);font-size:11.5px}
+.footnote{font-size:10.5px;color:#9AA1B4;line-height:1.6;margin-top:6px}
+
+/* board */
+.board-card{padding:14px;width:100%;max-width:672px;margin:0 auto}
+.board-wrap{position:relative;width:100%;max-width:620px;margin:0 auto;aspect-ratio:1/1;
+  border-radius:12px;overflow:hidden;background:#fff;box-shadow:0 2px 8px rgba(16,24,40,.08)}
+#board{display:block;width:100%;height:100%;touch-action:none;user-select:none;-webkit-user-select:none}
+.statusline{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:12px;color:#6B7280;flex-wrap:wrap}
+.bar{flex:1;min-width:80px;height:6px;border-radius:3px;background:#EEF0F6;overflow:hidden}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,#6366F1,#8B5CF6)}
+.pill{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 9px;border-radius:7px;
+  background:#F6F7FB;border:1px solid var(--line);font-size:11.5px;font-weight:600;color:#4B5265}
+.pill.green{background:#F0FDF4;border-color:#DCFCE7;color:var(--green)}
+.pill.red{background:#FEF2F2;border-color:#FEE2E2;color:var(--red)}
+.pill.amber{background:#FFFBEB;border-color:#FEF3C7;color:var(--amber)}
+.pill.blue{background:#EEF0FF;border-color:#E0E4FF;color:#4338CA}
+
+/* tools & buttons */
+.tools{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.tool{height:52px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;font-size:10px;color:#5B6376;background:#F8F9FC;border:1px solid #EFF1F7;transition:.12s}
+.tool:hover{background:#F2F4FA}
+.tool.on{background:#EEF0FF;border-color:#DDE0FF;color:var(--accent)}
+.tool svg{width:16px;height:16px}
+.btnrow{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.btn{height:36px;padding:0 14px;border-radius:10px;border:1px solid var(--line);background:#fff;
+  font-size:12px;font-weight:600;color:#3D4457;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.btn:hover{background:#F7F8FC}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.primary{background:linear-gradient(140deg,#6366F1,#7C3AED);color:#fff;border-color:transparent;
+  box-shadow:0 6px 16px -8px rgba(99,102,241,.9)}
+.btn.primary:hover{filter:brightness(1.04)}
+.btn.wide{flex:1}
+.btn.tall{height:42px;font-size:12.5px}
+.switch{display:flex;align-items:center;gap:9px;margin-top:12px;cursor:pointer;user-select:none}
+.switch input{appearance:none;width:36px;height:20px;border-radius:20px;background:#DDE1EC;position:relative;
+  transition:.15s;cursor:pointer;flex:none}
+.switch input:checked{background:var(--accent)}
+.switch input::after{content:"";position:absolute;width:16px;height:16px;border-radius:50%;background:#fff;
+  top:2px;left:2px;transition:.15s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.switch input:checked::after{left:18px}
+.switch span{font-size:12px;font-weight:600;color:#3D4457}
+
+/* create */
+.steps{display:flex;align-items:center;gap:4px;margin-bottom:12px}
+.step{display:flex;align-items:center;gap:5px;font-size:10.5px;font-weight:700;color:#98A0B3}
+.step .n{width:17px;height:17px;border-radius:50%;border:1.4px solid #D7DBE6;display:grid;place-items:center;
+  font-size:9.5px;background:#fff}
+.step.on{color:var(--accent)} .step.on .n{background:var(--accent);border-color:var(--accent);color:#fff}
+.step.done{color:var(--green)} .step.done .n{background:#DCFCE7;border-color:#BBF7D0;color:var(--green)}
+.step-line{flex:1;height:1.5px;background:#E6E9F1}
+.slots{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.slot{display:flex;align-items:center;gap:6px;height:32px;padding:0 7px;border-radius:8px;
+  border:1px solid var(--line);background:#fff;font-size:11px;font-weight:600}
+.slot .sw{width:11px;height:11px;border-radius:3px;flex:none}
+.slot .ct{margin-left:auto;font-size:10px;color:#9AA1B4;font-variant-numeric:tabular-nums}
+.slot.on{outline:2px solid var(--accent);outline-offset:1px}
+.slot.warn{border-color:#FDE68A;background:#FFFBEB}
+.slot.warn .ct{color:var(--amber)}
+.slot.idle .ct{color:#C4CAD6}
+.toolrow{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px}
+.hintline{font-size:11px;color:var(--muted);line-height:1.7;margin-top:8px;min-height:34px}
+.hintline b{color:var(--accent)}
+.prog{height:5px;border-radius:3px;background:#EEF0F6;overflow:hidden;margin-top:9px}
+.prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,#6366F1,#8B5CF6);transition:width .12s linear}
+.range{display:flex;align-items:center;gap:9px;margin-top:10px;font-size:11.5px;color:#5B6376}
+.range input{flex:1}
+.range b{font-variant-numeric:tabular-nums;color:var(--ink)}
+
+/* daily */
+.dots{display:flex;gap:6px;margin-top:10px}
+.day{flex:1;aspect-ratio:1/1;border-radius:8px;border:1px solid var(--line);background:#F8F9FC;
+  display:grid;place-items:center;font-size:9.5px;color:#A6AEC0;font-weight:700}
+.day.ok{background:#EEFDF3;border-color:#BBF7D0;color:var(--green)}
+.day.today{outline:2px solid var(--accent);outline-offset:1px;background:#fff;color:var(--accent)}
+.stats{display:flex;gap:8px}
+.stat{flex:1;text-align:center;padding:4px 2px}
+.stat .k{font-size:10px;color:#9AA1B4;font-weight:700;letter-spacing:.5px}
+.stat .v{font-size:17px;font-weight:700;margin-top:2px;font-variant-numeric:tabular-nums}
+
+/* overlay / modal / toast */
+.overlay{position:absolute;inset:0;display:none;place-items:center;background:rgba(255,255,255,.86);
+  backdrop-filter:blur(3px);z-index:9;border-radius:12px;text-align:center;padding:18px}
+.overlay.on{display:grid}
+.overlay h3{font-size:20px;margin-bottom:6px}
+.overlay p{font-size:12.5px;color:var(--muted);margin-bottom:14px;line-height:1.7}
+.modal{position:fixed;inset:0;background:rgba(22,27,46,.42);display:none;place-items:center;z-index:80;padding:20px}
+.modal.on{display:grid}
+.modal-card{background:#fff;border-radius:16px;padding:18px;width:min(460px,100%);box-shadow:0 24px 60px -20px rgba(0,0,0,.4)}
+.modal-card h3{font-size:15px;margin-bottom:4px}
+.modal-card p{font-size:11.5px;color:var(--muted);margin-bottom:10px;white-space:pre-line;line-height:1.7}
+.modal-card textarea{width:100%;height:96px;resize:vertical;border:1px solid var(--line);border-radius:10px;
+  padding:9px 10px;font-family:Consolas,monospace;font-size:11.5px;color:#3D4457;background:#FAFBFE}
+.modal-card textarea:focus{outline:2px solid #C7CCFA;border-color:#C7CCFA}
+.toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,20px);background:#1F2433;color:#fff;
+  padding:10px 16px;border-radius:10px;font-size:12.5px;opacity:0;pointer-events:none;transition:.22s;z-index:99;
+  max-width:80vw;text-align:center}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+#errbox{display:none;position:fixed;left:12px;right:12px;top:12px;background:#FEF2F2;border:1px solid #FCA5A5;
+  color:#991B1B;padding:10px 14px;border-radius:10px;font-size:12px;z-index:999;white-space:pre-wrap}
+.hidden{display:none!important}
+.kbd{display:inline-block;padding:1px 5px;border:1px solid #DDE1EC;border-bottom-width:2px;border-radius:4px;
+  font-size:10px;color:#6B7280;background:#fff;margin:0 1px}
+</style>
+</head>
+<body>
+<div id="errbox"></div>
+<div class="app">
+  <div class="topbar">
+    <div class="brand">
+      <div class="logo"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <b>SudokuHelper</b>
+    </div>
+    <div class="tabs" id="tabs">
+      <button data-tab="play" class="on">解题</button>
+      <button data-tab="create">出题</button>
+      <button data-tab="daily">每日一题</button>
+    </div>
+    <div class="grow"></div>
+    <div class="chip" id="topChip"><span class="dot"></span><span id="topChipText">异形 · 标准</span></div>
+  </div>
+
+  <div class="layout">
+    <div class="card board-card">
+      <div class="board-wrap">
+        <svg id="board" viewBox="0 0 9 9" role="img" aria-label="异形数独棋盘"></svg>
+        <div class="overlay" id="overlay">
+          <div>
+            <h3 id="ovTitle">完成！</h3>
+            <p id="ovText"></p>
+            <div class="btnrow" style="justify-content:center;margin-top:0">
+              <button class="btn primary" id="ovBtn">再玩一次</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="statusline">
+        <span class="pill" id="pillState">进行中</span>
+        <span class="pill" id="pillConflict">冲突 0</span>
+        <div class="bar"><i id="progressBar" style="width:0%"></i></div>
+        <span id="progressText" style="font-variant-numeric:tabular-nums">0/81</span>
+      </div>
+    </div>
+
+    <aside>
+      <!-- 解题 / 每日一题 共用面板 -->
+      <div id="panel-game">
+        <div class="card pad hidden" id="dailyBox">
+          <div class="card-head"><span class="t">每日一题</span><span class="muted" id="dailyDate">—</span></div>
+          <div class="hintline" id="dailyHint" style="margin-top:0">每天一道固定的异形数独，全平台同一题。</div>
+          <div class="dots" id="dailyDots"></div>
+          <div class="stats" style="margin-top:10px">
+            <div class="stat"><div class="k">用时</div><div class="v" id="dailyTime">00:00</div></div>
+            <div class="stat"><div class="k">连续</div><div class="v" id="dailyStreak">0</div></div>
+          </div>
+        </div>
+
+        <div class="card pad" style="margin-top:12px">
+          <div class="card-head"><span class="t">工具</span><span class="muted">键盘直接输入数字</span></div>
+          <div class="tools" id="tools"></div>
+          <div class="footnote" style="margin-top:9px">
+            <span class="kbd">1-9</span> 填数 · <span class="kbd">N</span> 笔记 ·
+            <span class="kbd">←↑→↓</span> 移动 · <span class="kbd">Del</span> 清除 ·
+            <span class="kbd">Ctrl+Z</span> 撤销
+          </div>
+        </div>
+
+        <div class="card pad" style="margin-top:12px">
+          <button class="btn primary wide tall" id="btnHint">提示 · 已用 0 次</button>
+          <div id="candBox">
+            <label class="switch" id="candSwitch">
+              <input type="checkbox" id="chkCand"><span>开启全局提示</span>
+            </label>
+            <div class="footnote">开启后，每个空格内会显示可填数字</div>
+          </div>
+        </div>
+
+        <div class="card pad" style="margin-top:12px">
+          <div class="stats">
+            <div class="stat"><div class="k">用时</div><div class="v" id="statTime">00:00</div></div>
+            <div class="stat"><div class="k">错误</div><div class="v" id="statErr">0</div></div>
+            <div class="stat"><div class="k">提示</div><div class="v" id="statHint">0</div></div>
+          </div>
+        </div>
+
+        <div class="card pad" style="margin-top:12px">
+          <div class="btnrow" style="margin-top:0">
+            <button class="btn wide" id="btnCheck">校验答案</button>
+            <button class="btn wide" id="btnReset">重新开始</button>
+          </div>
+          <div class="btnrow">
+            <button class="btn wide" id="btnImport">导入题目</button>
+            <button class="btn wide hidden" id="btnShareDaily">分享今日成绩</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 出题 -->
+      <div id="panel-create" class="hidden">
+        <div class="card pad">
+          <div class="steps" id="steps">
+            <div class="step on" data-step="1"><span class="n">1</span>画区域</div>
+            <div class="step-line"></div>
+            <div class="step" data-step="2"><span class="n">2</span>填数字</div>
+            <div class="step-line"></div>
+            <div class="step" data-step="3"><span class="n">3</span>挖空</div>
+            <div class="step-line"></div>
+            <div class="step" data-step="4"><span class="n">4</span>分享</div>
+          </div>
+          <div class="slots" id="slots"></div>
+          <div class="toolrow" id="createTools"></div>
+          <div class="btnrow">
+            <button class="btn wide" id="btnRandomRegions">随机区域</button>
+            <button class="btn wide" id="btnClearRegions">清空</button>
+          </div>
+          <div class="btnrow">
+            <button class="btn primary wide" id="btnSolve">生成答案</button>
+          </div>
+          <div class="range">
+            <span>提示数</span>
+            <input type="range" id="digRange" min="20" max="50" step="1" value="32">
+            <b id="digVal">32</b>
+          </div>
+          <label class="switch" id="exactSwitch">
+            <input type="checkbox" id="chkExact"><span>仅使用当前提示数</span>
+          </label>
+          <div class="footnote">勾选后必须正好是上面的提示数；做不到会告诉你最少需要几个。<br><b style="color:#B45309">请在生成答案前勾选，否则已完成部分可能会被清空。</b></div>
+          <div class="prog hidden" id="progWrap"><i id="progBar"></i></div>
+          <div class="btnrow">
+            <button class="btn wide" id="btnDig">生成题目</button>
+            <button class="btn wide" id="btnCheckCreate">校验</button>
+          </div>
+          <div class="hintline" id="createHint">点选区域槽（R1–R9）后用画笔勾选 9 格；区域可以有 1–9 个，也可以不连通。</div>
+        </div>
+        <div class="card pad" style="margin-top:12px">
+          <div class="card-head"><span class="t">出题结果</span><span class="muted" id="createMeta">—</span></div>
+          <div class="btnrow" style="margin-top:0">
+            <button class="btn wide" id="btnPlayThis" disabled>试玩此题</button>
+          </div>
+          <div class="btnrow">
+            <button class="btn wide" id="btnShareCode" disabled>复制分享码</button>
+          </div>
+          <div class="footnote">分享码把题目压成一段字符串，对方在「导入题目」里粘贴即可。</div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<div class="modal" id="importModal">
+  <div class="modal-card">
+    <h3>导入题目</h3>
+    <p>粘贴分享码（形如 <code>SH1.xxxx</code>），支持带空格换行。</p>
+    <textarea id="importText" placeholder="SH1.…" spellcheck="false"></textarea>
+    <div class="btnrow" style="justify-content:flex-end">
+      <button class="btn" id="importCancel">取消</button>
+      <button class="btn primary" id="importOk">导入</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ==== CORE START ==== */
+/* Pure logic, no DOM. Exposed as globalThis.SC for tests. */
+const SC = (function () {
+  const idx = (r, c) => r * 9 + c;
+
+  function popcount(x) {
+    x = x - ((x >> 1) & 0x55555555);
+    x = (x & 0x33333333) + ((x >> 2) & 0x33333333);
+    x = (x + (x >> 4)) & 0x0f0f0f0f;
+    return (x * 0x01010101) >> 24;
+  }
+
+  function mulberry32(a) {
+    return function () {
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function hashStr(s) {
+    let h = 2166136261 >>> 0;
+    for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return h >>> 0;
+  }
+
+  function shuffle(arr, rng) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = (rng() * (i + 1)) | 0;
+      const t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+    }
+    return arr;
+  }
+
+  const NB = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+
+  function neighbors(i) {
+    const r = (i / 9) | 0, c = i % 9, out = [];
+    for (const [dr, dc] of NB) {
+      const rr = r + dr, cc = c + dc;
+      if (rr >= 0 && rr < 9 && cc >= 0 && cc < 9) out.push(rr * 9 + cc);
+    }
+    return out;
+  }
+
+  function isConnected(setLike) {
+    const cells = setLike instanceof Set ? [...setLike] : Array.from(setLike);
+    if (!cells.length) return false;
+    const inSet = new Set(cells);
+    const seen = new Set([cells[0]]);
+    const q = [cells[0]];
+    while (q.length) {
+      const x = q.pop();
+      for (const y of neighbors(x)) {
+        if (inSet.has(y) && !seen.has(y)) { seen.add(y); q.push(y); }
+      }
+    }
+    return seen.size === cells.length;
+  }
+
+  /* ---------- generator ---------- */
+  function genSolution(rng) {
+    const digits = shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9], rng);
+    const bands = shuffle([0, 1, 2], rng);
+    const stacks = shuffle([0, 1, 2], rng);
+    const rows = [];
+    for (const b of bands) { const p = shuffle([0, 1, 2], rng); for (const x of p) rows.push(b * 3 + x); }
+    const cols = [];
+    for (const s of stacks) { const p = shuffle([0, 1, 2], rng); for (const x of p) cols.push(s * 3 + x); }
+    const g = new Int8Array(81);
+    for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) {
+      const base = (3 * (rows[r] % 3) + ((rows[r] / 3) | 0) + cols[c]) % 9;
+      g[idx(r, c)] = digits[base];
+    }
+    return g;
+  }
+
+  /* ---------- solver (regions >= 0 only; cells outside regions are unconstrained) ---------- */
+  function solver(grid, regions, opts) {
+    opts = opts || {};
+    const limit = opts.limit == null ? 2 : opts.limit;
+    const nodeLimit = opts.nodeLimit == null ? 4e6 : opts.nodeLimit;
+    const deadline = opts.deadline == null ? Infinity : opts.deadline;
+    const rows = new Int32Array(9), cols = new Int32Array(9),
+          boxes = new Int32Array(9), regs = new Int32Array(9);
+    const g = Int8Array.from(grid);
+    const empty = [];
+    for (let i = 0; i < 81; i++) {
+      const v = g[i];
+      if (v) {
+        const r = (i / 9) | 0, c = i % 9, b = (((r / 3) | 0) * 3) + ((c / 3) | 0), bit = 1 << v;
+        rows[r] |= bit; cols[c] |= bit; boxes[b] |= bit;
+        const ri = regions[i];
+        if (ri >= 0) regs[ri] |= bit;
+      } else empty.push(i);
+    }
+    let count = 0, nodes = 0, aborted = false, first = null;
+    function rec(n) {
+      if (aborted || count >= limit) return;
+      nodes++;
+      if (nodes > nodeLimit || (nodes % 1024 === 0 && Date.now() > deadline)) { aborted = true; return; }
+      if (n === empty.length) { if (count === 0) first = Int8Array.from(g); count++; return; }
+      let bestK = n, bestMask = 0, bestCnt = 10;
+      for (let k = n; k < empty.length; k++) {
+        const i = empty[k], r = (i / 9) | 0, c = i % 9, b = (((r / 3) | 0) * 3) + ((c / 3) | 0);
+        const ri = regions[i];
+        const rmask = ri >= 0 ? regs[ri] : 0;
+        const mask = ~(rows[r] | cols[c] | boxes[b] | rmask) & 0x3FE;
+        const cnt = popcount(mask);
+        if (cnt < bestCnt) { bestCnt = cnt; bestK = k; bestMask = mask; if (cnt <= 1) break; }
+      }
+      if (bestCnt === 0) return;
+      const a = empty[bestK], b0 = empty[n];
+      empty[n] = a; empty[bestK] = b0;
+      const i = a, r = (i / 9) | 0, c = i % 9,
+            b = (((r / 3) | 0) * 3) + ((c / 3) | 0), ri = regions[i];
+      let mask = bestMask;
+      while (mask) {
+        const bit = mask & -mask; mask ^= bit;
+        const v = 31 - Math.clz32(bit);
+        rows[r] |= bit; cols[c] |= bit; boxes[b] |= bit;
+        if (ri >= 0) regs[ri] |= bit;
+        g[i] = v;
+        rec(n + 1);
+        rows[r] ^= bit; cols[c] ^= bit; boxes[b] ^= bit;
+        if (ri >= 0) regs[ri] ^= bit;
+        g[i] = 0;
+        if (count >= limit || aborted) break;
+      }
+      empty[n] = b0; empty[bestK] = a;
+    }
+    rec(0);
+    return { count, first, aborted, nodes };
+  }
+
+  /* ---------- jigsaw partition: melt boxes ---------- */
+  function repartition(rng, sol, union, original, minDiff) {
+    const cells = [...union];
+    const seed = cells[(rng() * cells.length) | 0];
+    const chosen = [seed];
+    const chosenSet = new Set(chosen);
+    const used = new Set([sol[seed]]);
+    let budget = 2500;
+
+    // reject bar-shaped regions: no row/column may hold more than 6 of the 9 cells
+    function okShape(set) {
+      const rc = new Array(9).fill(0), cc = new Array(9).fill(0);
+      for (const x of set) { rc[(x / 9) | 0]++; cc[x % 9]++; }
+      for (let i = 0; i < 9; i++) if (rc[i] > 6 || cc[i] > 6) return false;
+      return true;
+    }
+
+    function dfs() {
+      if (--budget <= 0) return false;
+      if (chosen.length === 9) {
+        const rest = new Set();
+        for (const x of union) if (!chosenSet.has(x)) rest.add(x);
+        if (rest.size !== 9 || !isConnected(rest)) return false;
+        if (!okShape(chosenSet) || !okShape(rest)) return false;
+        let diff = 0;
+        for (const x of chosen) if (!original.has(x)) diff++;
+        for (const x of original) if (!chosenSet.has(x)) diff++;
+        return diff >= (minDiff == null ? 6 : minDiff);
+      }
+      const fr = new Set();
+      for (const a of chosen) {
+        for (const x of neighbors(a)) {
+          if (union.has(x) && !chosenSet.has(x) && !used.has(sol[x])) fr.add(x);
+        }
+      }
+      if (!fr.size) return false;
+      const arr = shuffle([...fr], rng);
+      for (const x of arr) {
+        chosen.push(x); chosenSet.add(x); used.add(sol[x]);
+        if (dfs()) return true;
+        used.delete(sol[x]); chosenSet.delete(x); chosen.pop();
+      }
+      return false;
+    }
+    if (!dfs()) return null;
+    const A = new Set(chosen);
+    const B = new Set();
+    for (const x of union) if (!A.has(x)) B.add(x);
+    return [A, B];
+  }
+
+  // how much the partition still looks like plain 3x3 boxes (lower = more jigsaw)
+  function boxScore(reg) {
+    let s = 0;
+    for (let b = 0; b < 9; b++) {
+      const cnt = new Int8Array(9);
+      for (let a = 0; a < 3; a++) for (let c = 0; c < 3; c++) {
+        const r = ((b / 3) | 0) * 3 + a, cc = (b % 3) * 3 + c;
+        const k = reg[r * 9 + cc];
+        if (k >= 0 && k < 9) cnt[k]++;
+      }
+      let m = 0;
+      for (let k = 0; k < 9; k++) if (cnt[k] > m) m = cnt[k];
+      s += m;
+    }
+    return s;
+  }
+
+  function boxPartition() {
+    const reg = new Int8Array(81);
+    for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) reg[idx(r, c)] = (((r / 3) | 0) * 3) + ((c / 3) | 0);
+    return reg;
+  }
+
+  // 融化一步（就地修改 reg，便于界面分片执行，避免长时间卡住主线程）
+  function meltStep(rng, sol, reg, iters) {
+    for (let it = 0; it < iters; it++) {
+      const k = (rng() * 9) | 0;
+      const nb = new Map();
+      for (let i = 0; i < 81; i++) {
+        if (reg[i] !== k) continue;
+        for (const x of neighbors(i)) { const j = reg[x]; if (j !== k) nb.set(j, (nb.get(j) || 0) + 1); }
+      }
+      if (!nb.size) continue;
+      const pool = [];
+      for (const [j, w] of nb) for (let t = 0; t < w; t++) pool.push(j);
+      const j = pool[(rng() * pool.length) | 0];
+      const A = new Set(), union = new Set();
+      for (let i = 0; i < 81; i++) {
+        if (reg[i] === k) { A.add(i); union.add(i); }
+        else if (reg[i] === j) union.add(i);
+      }
+      const res = repartition(rng, sol, union, A);
+      if (!res) continue;
+      const before = boxScore(reg);
+      const backup = Int8Array.from(reg);
+      for (const x of res[0]) reg[x] = k;
+      for (const x of res[1]) reg[x] = j;
+      const target = 49;
+      const after = boxScore(reg);
+      const better = Math.abs(after - target) <= Math.abs(before - target);
+      if (!better && rng() > 0.14) reg.set(backup);
+    }
+    return reg;
+  }
+
+  function meltRegions(rng, sol, iters) {
+    const reg = boxPartition();
+    meltStep(rng, sol, reg, iters || 1400);
+    return reg;
+  }
+
+  /* ---------- validation: 1..9 regions, exactly 9 cells each, connectivity NOT required ---------- */
+  function regionCells(regions, k) {
+    const out = [];
+    for (let i = 0; i < 81; i++) if (regions[i] === k) out.push(i);
+    return out;
+  }
+
+  function validateRegions(regions) {
+    const problems = [];
+    const counts = new Array(9).fill(0);
+    let defined = 0, covered = 0;
+    for (let i = 0; i < 81; i++) {
+      const k = regions[i];
+      if (k < 0) continue;
+      if (k > 8) { problems.push({ code: 'bad', msg: '区域编号越界' }); continue; }
+      counts[k]++; covered++;
+    }
+    for (let k = 0; k < 9; k++) {
+      if (!counts[k]) continue;
+      defined++;
+      if (counts[k] !== 9) problems.push({ code: 'count', k, msg: 'R' + (k + 1) + ' 有 ' + counts[k] + ' 格，必须正好 9 格' });
+    }
+    if (!defined) problems.push({ code: 'none', msg: '至少要勾选 1 个区域' });
+    return { ok: problems.length === 0, problems, counts, defined, covered };
+  }
+
+  function regionsMatchSolution(sol, regions) {
+    for (let k = 0; k < 9; k++) {
+      const cells = regionCells(regions, k);
+      if (!cells.length) continue;
+      const seen = new Set();
+      for (const i of cells) seen.add(sol[i]);
+      if (seen.size !== 9) return false;
+    }
+    return true;
+  }
+
+  /* ---------- digging (keeps the pre-entered digits) ---------- */
+  function makeDigger(rng, sol, regions, target, keep) {
+    const g = Int8Array.from(sol);
+    const order = shuffle([...Array(81).keys()], rng);
+    let cursor = 0, givens = 81, finished = false;
+    function done() { return finished || givens <= target || cursor >= order.length; }
+    function step() {
+      if (done()) { finished = true; return false; }
+      const i = order[cursor++];
+      if (keep && keep[i]) return true;
+      const v = g[i];
+      g[i] = 0;
+      const r = solver(g, regions, { limit: 2, nodeLimit: 3e6 });
+      if (r.count === 1) givens--; else g[i] = v;
+      return true;
+    }
+    function result() { return { puzzle: Int8Array.from(g), givens }; }
+    return { done, step, result, get givens() { return givens; } };
+  }
+
+  function digPuzzle(rng, sol, regions, target, keep) {
+    const d = makeDigger(rng, sol, regions, target, keep);
+    let guard = 0;
+    while (!d.done() && guard++ < 200) d.step();
+    return d.result();
+  }
+
+  // 反复尝试，尽量正好挖到 target 个提示
+  function digExact(rng, sol, regions, target, keep, tries) {
+    let best = null;
+    const n = tries || 3;
+    for (let t = 0; t < n; t++) {
+      const r = digPuzzle(rng, sol, regions, target, keep);
+      if (!best || r.givens < best.givens) best = r;
+      if (best.givens <= target) break;
+    }
+    return best;
+  }
+
+  /* ---------- play helpers ---------- */
+  function unitList(regions) {
+    const units = [];
+    for (let r = 0; r < 9; r++) { const c = []; for (let x = 0; x < 9; x++) c.push(idx(r, x)); units.push({ type: 'row', i: r, cells: c }); }
+    for (let cc = 0; cc < 9; cc++) { const c = []; for (let x = 0; x < 9; x++) c.push(idx(x, cc)); units.push({ type: 'col', i: cc, cells: c }); }
+    for (let br = 0; br < 3; br++) for (let bc = 0; bc < 3; bc++) {
+      const c = [];
+      for (let a = 0; a < 3; a++) for (let b = 0; b < 3; b++) c.push(idx(br * 3 + a, bc * 3 + b));
+      units.push({ type: 'box', i: br * 3 + bc, cells: c });
+    }
+    for (let k = 0; k < 9; k++) {
+      const cells = regionCells(regions, k);
+      if (cells.length) units.push({ type: 'reg', i: k, cells });
+    }
+    return units;
+  }
+
+  function conflictsOf(grid, regions) {
+    const bad = new Set();
+    for (const u of unitList(regions)) {
+      const seen = new Map();
+      for (const i of u.cells) {
+        const v = grid[i];
+        if (!v) continue;
+        if (!seen.has(v)) seen.set(v, []);
+        seen.get(v).push(i);
+      }
+      for (const [, list] of seen) if (list.length > 1) for (const i of list) bad.add(i);
+    }
+    return bad;
+  }
+
+  function candidatesAt(grid, regions, i) {
+    if (grid[i]) return [];
+    let used = 0;
+    const r = (i / 9) | 0, c = i % 9;
+    for (let x = 0; x < 9; x++) { used |= 1 << grid[idx(r, x)]; used |= 1 << grid[idx(x, c)]; }
+    const br = ((r / 3) | 0) * 3, bc = ((c / 3) | 0) * 3;
+    for (let a = 0; a < 3; a++) for (let b = 0; b < 3; b++) used |= 1 << grid[idx(br + a, bc + b)];
+    const ri = regions[i];
+    if (ri >= 0) for (let x = 0; x < 81; x++) if (regions[x] === ri) used |= 1 << grid[x];
+    const out = [];
+    for (let d = 1; d <= 9; d++) if (!(used & (1 << d))) out.push(d);
+    return out;
+  }
+
+  function checkGrid(grid, regions) {
+    const issues = [];
+    let empty = 0;
+    for (let i = 0; i < 81; i++) if (!grid[i]) empty++;
+    for (const u of unitList(regions)) {
+      const seen = new Map();
+      for (const i of u.cells) {
+        const v = grid[i];
+        if (!v) continue;
+        if (!seen.has(v)) seen.set(v, []);
+        seen.get(v).push(i);
+      }
+      for (const [v, list] of seen) {
+        if (list.length > 1) {
+          const name = u.type === 'row' ? '第 ' + (u.i + 1) + ' 行'
+            : u.type === 'col' ? '第 ' + (u.i + 1) + ' 列'
+            : u.type === 'box' ? '第 ' + (u.i + 1) + ' 个 3×3 宫'
+            : 'R' + (u.i + 1) + ' 区域';
+          issues.push({ type: u.type, i: u.i, digit: v, cells: list, msg: name + '里数字 ' + v + ' 重复了' });
+        }
+      }
+    }
+    return { ok: issues.length === 0 && empty === 0, issues, empty };
+  }
+
+  /* ---------- share code: 162 nibbles -> 81 bytes -> base64url ---------- */
+  function encodeCode(regions, givens) {
+    const nib = new Uint8Array(162);
+    for (let i = 0; i < 81; i++) nib[i] = regions[i] < 0 ? 15 : regions[i];
+    for (let i = 0; i < 81; i++) nib[81 + i] = givens[i] || 0;
+    const bytes = new Uint8Array(81);
+    for (let i = 0; i < 162; i++) {
+      if (i % 2 === 0) bytes[i >> 1] = nib[i] << 4;
+      else bytes[i >> 1] |= nib[i];
+    }
+    let raw = '';
+    for (let i = 0; i < bytes.length; i++) raw += String.fromCharCode(bytes[i]);
+    const b64 = btoa(raw).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    return 'SH1.' + b64;
+  }
+
+  function decodeCode(code) {
+    try {
+      let s = String(code || '').replace(/\s+/g, '');
+      if (s.startsWith('SH1.')) s = s.slice(4);
+      s = s.replace(/-/g, '+').replace(/_/g, '/');
+      while (s.length % 4) s += '=';
+      const raw = atob(s);
+      if (raw.length !== 81) return null;
+      const nib = new Uint8Array(162);
+      for (let i = 0; i < 81; i++) {
+        const b = raw.charCodeAt(i);
+        nib[2 * i] = b >> 4;
+        nib[2 * i + 1] = b & 15;
+      }
+      const regions = new Int8Array(81);
+      const givens = new Int8Array(81);
+      for (let i = 0; i < 81; i++) {
+        const r = nib[i];
+        if (r > 8 && r !== 15) return null;
+        regions[i] = r === 15 ? -1 : r;
+        const g = nib[81 + i];
+        if (g > 9) return null;
+        givens[i] = g;
+      }
+      return { regions, givens };
+    } catch (e) { return null; }
+  }
+
+  /* ---------- daily ---------- */
+  function buildDaily(dateStr, opts) {
+    opts = opts || {};
+    const rng = mulberry32(hashStr('jigsaw-daily-' + dateStr) ^ 0x9e3779b9);
+    const sol = genSolution(rng);
+    const regions = meltRegions(rng, sol, opts.iters || 1400);
+    const dug = digPuzzle(rng, sol, regions, opts.target || 34);
+    return { date: dateStr, solution: sol, regions, givens: dug.puzzle, givensCount: dug.givens };
+  }
+
+  return {
+    idx, popcount, mulberry32, hashStr, shuffle, neighbors, isConnected,
+    genSolution, solver, boxPartition, meltStep, meltRegions, regionCells, validateRegions, regionsMatchSolution,
+    makeDigger, digPuzzle, digExact, unitList, conflictsOf, candidatesAt, checkGrid,
+    encodeCode, decodeCode, buildDaily
+  };
+})();
+if (typeof globalThis !== 'undefined') globalThis.SC = SC;
+/* ==== CORE END ==== */
+</script>
+
+<script>
+(function () {
+  'use strict';
+  const $ = (s) => document.querySelector(s);
+  const $$ = (s) => Array.from(document.querySelectorAll(s));
+
+  // 分享文案里的网址：留空 = 自动使用当前网页地址（部署到 GitHub Pages 后即正确）
+  // 想固定成别的地址（比如仓库主页）在这里填，例如 'https://github.com/you/SudokuHelper'
+  const APP_URL = '';
+  function appUrl() {
+    if (APP_URL) return APP_URL;
+    const u = location.href.split('#')[0].split('?')[0];
+    return /^https?:/i.test(u) ? u : '【网址】';
+  }
+
+  const PAL = [
+    ['#FFDCDC', '#D97070'], ['#FFE0B8', '#CE8236'], ['#F5ECAF', '#AE9B33'],
+    ['#D3EDC3', '#689B54'], ['#C2E9DF', '#3E9384'], ['#CFDEF8', '#567FC0'],
+    ['#DCD3F8', '#7361B8'], ['#EFD0F3', '#9863AD'], ['#F9CCE0', '#B45C82']
+  ];
+  const DEFAULT_R = '666444277664444277666644277001112227001812127008811127088553333088555533088555333';
+  const DEFAULT_S = '758149623263875941491326578845912736376584219129637485687451392932768154514293867';
+  const DEFAULT_G = '050040600003805000001000570800902706000500019120037480000001302932000150000090067';
+
+  const S = {
+    mode: 'play',
+    regions: new Int8Array(81).fill(-1),
+    givens: new Int8Array(81),
+    grid: new Int8Array(81),
+    solution: null,
+    notes: new Uint16Array(81),
+    fixed: new Int8Array(81),        // 出题模式里手动填入的提示数
+    sel: -1,
+    notesMode: false,
+    showCand: false,                 // 全局提示，默认关闭
+    hints: 0,
+    errors: 0,
+    hist: [],
+    future: [],
+    won: false,
+    startAt: 0,
+    elapsed: 0,
+    timer: null,
+    playLoaded: false,
+    create: { slot: 0, tool: 'brush', puzzle: null, givensCount: 0, busy: false },
+    daily: { date: null, data: null }
+  };
+  const STORE = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  };
+
+  /* ---------------- utils ---------------- */
+  let toastTimer = null;
+  function toast(msg) {
+    const t = $('#toast');
+    t.textContent = msg;
+    t.classList.add('on');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('on'), 2200);
+  }
+  let errTimer = null;
+  function showError(msg) {
+    const b = $('#errbox');
+    b.textContent = msg;
+    b.style.display = 'block';
+    clearTimeout(errTimer);
+    errTimer = setTimeout(() => { b.style.display = 'none'; }, 6000);
+  }
+  window.addEventListener('error', (e) => {
+    showError('运行出错：' + (e.message || e) + '\n' + (e.filename || '') + ':' + (e.lineno || ''));
+  });
+  document.addEventListener('click', (e) => {
+    if (e.target && e.target.id === 'errbox') e.target.style.display = 'none';
+  });
+
+  function fmt(ms) {
+    const s = Math.floor(ms / 1000);
+    return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+  }
+  function fmtCJK(ms) {
+    const s = Math.floor(ms / 1000);
+    return Math.floor(s / 60) + '：' + String(s % 60).padStart(2, '0');
+  }
+  function todayStr() {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function dateAdd(str, n) {
+    const [y, m, d] = str.split('-').map(Number);
+    const dt = new Date(y, m - 1, d);
+    dt.setDate(dt.getDate() + n);
+    return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
+  }
+  function copyText(text, okMsg) {
+    const done = () => toast(okMsg || '已复制到剪贴板');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, fallback);
+    } else fallback();
+    function fallback() {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); done(); } catch (e) { toast('复制失败，请手动复制'); }
+      document.body.removeChild(ta);
+    }
+  }
+
+  /* ---------------- board rendering ---------------- */
+  const boardEl = $('#board');
+  let dragStart = -1, dragCur = -1, painting = false;
+
+  function cellFromEvent(ev) {
+    const r = boardEl.getBoundingClientRect();
+    const x = (ev.clientX - r.left) / r.width * 9;
+    const y = (ev.clientY - r.top) / r.height * 9;
+    const c = Math.floor(x), row = Math.floor(y);
+    if (c < 0 || c > 8 || row < 0 || row > 8) return -1;
+    return row * 9 + c;
+  }
+
+  function renderBoard() {
+    const regions = S.regions, grid = S.grid, givens = S.givens;
+    const create = S.mode === 'create';
+    const conflicts = create ? new Set() : SC.conflictsOf(grid, regions);
+    const selDigit = S.sel >= 0 ? grid[S.sel] : 0;
+    const showCand = S.mode === 'play' && S.showCand;
+    const parts = [];
+    parts.push('<g>');
+    for (let i = 0; i < 81; i++) {
+      const r = (i / 9) | 0, c = i % 9, k = regions[i];
+      const fill = k >= 0 ? PAL[k][0] : (create ? '#F6F7FB' : '#FFFFFF');
+      parts.push('<rect x="' + c + '" y="' + r + '" width="1" height="1" fill="' + fill + '"/>');
+    }
+    parts.push('</g>');
+
+    parts.push('<g>');
+    for (let i = 0; i < 81; i++) {
+      const r = (i / 9) | 0, c = i % 9;
+      if (selDigit && grid[i] === selDigit) parts.push('<rect x="' + c + '" y="' + r + '" width="1" height="1" fill="#4F46E5" fill-opacity="0.13"/>');
+      if (conflicts.has(i)) parts.push('<rect x="' + c + '" y="' + r + '" width="1" height="1" fill="#EF4444" fill-opacity="0.18"/>');
+    }
+    parts.push('</g>');
+
+    // lines
+    const thin = '<g stroke="#1D2333" stroke-opacity="0.11" stroke-width="0.017">';
+    const box = '<g stroke="#666E80" stroke-width="0.048">';
+    const thick = '<g stroke="#161B2E" stroke-width="0.064" stroke-linecap="square">';
+    const dash = '<g stroke="#8E97AC" stroke-width="0.030" stroke-dasharray="0.14 0.10">';
+    let t1 = '', t2 = '', t3 = '', t4 = '';
+    for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) {
+      const i = r * 9 + c;
+      if (c < 8) {
+        const j = i + 1, va = regions[i] < 0, vb = regions[j] < 0;
+        const seg = '<line x1="' + (c + 1) + '" y1="' + r + '" x2="' + (c + 1) + '" y2="' + (r + 1) + '"/>';
+        t1 += seg;
+        if (va !== vb) t4 += seg;
+        else if (!va && regions[i] !== regions[j]) t3 += seg;
+      }
+      if (r < 8) {
+        const j = i + 9, va = regions[i] < 0, vb = regions[j] < 0;
+        const seg = '<line x1="' + c + '" y1="' + (r + 1) + '" x2="' + (c + 1) + '" y2="' + (r + 1) + '"/>';
+        t1 += seg;
+        if (va !== vb) t4 += seg;
+        else if (!va && regions[i] !== regions[j]) t3 += seg;
+      }
+    }
+    for (const p of [3, 6]) {
+      t2 += '<line x1="' + p + '" y1="0" x2="' + p + '" y2="9"/>';
+      t2 += '<line x1="0" y1="' + p + '" x2="9" y2="' + p + '"/>';
+    }
+    parts.push(thin + t1 + '</g>');
+    parts.push(box + t2 + '</g>');
+    parts.push(thick + t3 + '</g>');
+    parts.push(dash + t4 + '</g>');
+
+    // values + notes
+    parts.push('<g font-family="inherit" text-anchor="middle" dominant-baseline="central">');
+    for (let i = 0; i < 81; i++) {
+      const r = (i / 9) | 0, c = i % 9;
+      const v = grid[i];
+      if (v) {
+        let color = givens[i] ? '#1B2030' : '#2F4FD8';
+        if (conflicts.has(i)) color = '#DC2626';
+        parts.push('<text x="' + (c + 0.5) + '" y="' + (r + 0.53) + '" font-size="0.52" font-weight="600" fill="' + color + '">' + v + '</text>');
+        if (create && S.fixed[i]) {
+          parts.push('<circle cx="' + (c + 0.78) + '" cy="' + (r + 0.8) + '" r="0.045" fill="#4F46E5" fill-opacity="0.7"/>');
+        }
+      } else if (!create) {
+        const bits = S.notes[i];
+        if (bits) {
+          for (let d = 1; d <= 9; d++) {
+            if (!(bits & (1 << d))) continue;
+            const rr = ((d - 1) / 3) | 0, cc = (d - 1) % 3;
+            parts.push('<text x="' + (c + 0.2 + cc * 0.3) + '" y="' + (r + 0.22 + rr * 0.3) +
+              '" font-size="0.19" font-weight="600" fill="#5B6BD6">' + d + '</text>');
+          }
+        } else if (showCand) {
+          const cand = SC.candidatesAt(grid, regions, i);
+          for (const d of cand) {
+            const rr = ((d - 1) / 3) | 0, cc = (d - 1) % 3;
+            parts.push('<text x="' + (c + 0.2 + cc * 0.3) + '" y="' + (r + 0.22 + rr * 0.3) +
+              '" font-size="0.19" font-weight="500" fill="#AEB7CB">' + d + '</text>');
+          }
+        }
+      }
+    }
+    parts.push('</g>');
+
+    // region labels in create mode
+    if (create) {
+      parts.push('<g text-anchor="middle" dominant-baseline="central">');
+      for (let k = 0; k < 9; k++) {
+        const cells = SC.regionCells(regions, k);
+        if (!cells.length) continue;
+        let sr = 0, sc = 0;
+        for (const i of cells) { sr += (i / 9) | 0; sc += i % 9; }
+        sr /= cells.length; sc /= cells.length;
+        let best = cells[0], bd = 1e9;
+        for (const i of cells) {
+          const r = (i / 9) | 0, c = i % 9;
+          const d = (r - sr) * (r - sr) + (c - sc) * (c - sc);
+          if (d < bd) { bd = d; best = i; }
+        }
+        const r = (best / 9) | 0, c = best % 9;
+        parts.push('<rect x="' + (c + 0.5 - 0.16) + '" y="' + (r + 0.5 - 0.11) + '" width="0.32" height="0.22" rx="0.05" fill="#fff" fill-opacity="0.88" stroke="' + PAL[k][1] + '" stroke-width="0.018"/>');
+        parts.push('<text x="' + (c + 0.5) + '" y="' + (r + 0.51) + '" font-size="0.15" font-weight="700" fill="' + PAL[k][1] + '">R' + (k + 1) + '</text>');
+      }
+      parts.push('</g>');
+    }
+
+    if (S.sel >= 0) {
+      const r = (S.sel / 9) | 0, c = S.sel % 9;
+      parts.push('<rect x="' + (c + 0.03) + '" y="' + (r + 0.03) + '" width="0.94" height="0.94" rx="0.08" fill="none" stroke="#4F46E5" stroke-width="0.055"/>');
+    }
+    if (create && dragStart >= 0 && dragCur >= 0 && S.create.tool === 'rect') {
+      const r1 = Math.min(((dragStart / 9) | 0), ((dragCur / 9) | 0)), r2 = Math.max(((dragStart / 9) | 0), ((dragCur / 9) | 0));
+      const c1 = Math.min(dragStart % 9, dragCur % 9), c2 = Math.max(dragStart % 9, dragCur % 9);
+      parts.push('<rect x="' + (c1 + 0.06) + '" y="' + (r1 + 0.06) + '" width="' + (c2 - c1 + 0.88) + '" height="' + (r2 - r1 + 0.88) +
+        '" fill="#4F46E5" fill-opacity="0.12" stroke="#4F46E5" stroke-width="0.032" stroke-dasharray="0.12 0.09"/>');
+    }
+    boardEl.innerHTML = parts.join('');
+  }
+
+  let rafId = 0;
+  function scheduleRender() {
+    if (rafId) return;
+    rafId = requestAnimationFrame(function () { rafId = 0; renderBoard(); renderPanels(); });
+  }
+
+  /* ---------------- icons ---------------- */
+  const ICONS = {
+    pencil: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4.5l5 5L9 20H4v-5z"/><path d="M13 6l5 5"/></svg>',
+    dots: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="7" cy="7" r="1.5"/><circle cx="12" cy="7" r="1.5"/><circle cx="17" cy="7" r="1.5"/><circle cx="7" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="17" cy="12" r="1.5"/><circle cx="7" cy="17" r="1.5"/><circle cx="12" cy="17" r="1.5"/><circle cx="17" cy="17" r="1.5"/></svg>',
+    eraser: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 20h11"/><path d="M14.5 4.5l5 5-7.5 7.5H7.5L4.5 14z"/></svg>',
+    undo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9a9 9 0 1 1 2.7 6.4"/><path d="M3 4.5V9h4.5"/></svg>',
+    redo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 9A9 9 0 1 0 18.3 15.4"/><path d="M21 4.5V9h-4.5"/></svg>',
+    brush: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20c3 0 4-1 4-4 0-1.5 1-3 3-3s3 1.5 3 3"/><path d="M14.5 4.5l5 5-8 8"/></svg>',
+    digit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5h12"/><path d="M12 5v14"/><path d="M8.5 19h7"/></svg>',
+    check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5l5 5 10-11"/></svg>'
+  };
+
+  /* ---------------- panels ---------------- */
+  const TOOLS = [
+    { id: 'notes', icon: 'pencil', label: '笔记' },
+    { id: 'erase', icon: 'eraser', label: '擦除' },
+    { id: 'undo', icon: 'undo', label: '撤销' },
+    { id: 'redo', icon: 'redo', label: '重做' }
+  ];
+  function buildTools() {
+    const box = $('#tools');
+    box.innerHTML = '';
+    for (const t of TOOLS) {
+      const b = document.createElement('button');
+      b.className = 'tool';
+      b.dataset.id = t.id;
+      b.innerHTML = ICONS[t.icon] + '<span>' + t.label + '</span>';
+      b.addEventListener('click', () => onTool(t.id));
+      box.appendChild(b);
+    }
+  }
+
+  function renderPanels() {
+    const filled = Array.from(S.grid).filter(Boolean).length;
+    const create = S.mode === 'create';
+    const conflicts = create ? new Set() : SC.conflictsOf(S.grid, S.regions);
+    $('#progressBar').style.width = Math.round(filled / 81 * 100) + '%';
+    $('#progressText').textContent = filled + '/81';
+    $('#pillConflict').textContent = '冲突 ' + conflicts.size;
+    $('#pillConflict').className = 'pill ' + (conflicts.size ? 'red' : 'green');
+    $('#pillState').textContent = S.won ? '已完成' : (create ? '编辑中' : (S.mode === 'daily' ? '每日挑战' : '进行中'));
+    $('#pillState').className = 'pill ' + (S.won ? 'green' : '');
+    $('#statTime').textContent = fmt(S.elapsed);
+    $('#statErr').textContent = S.errors;
+    $('#statHint').textContent = S.hints;
+    $('#btnHint').textContent = '提示 · 已用 ' + S.hints + ' 次';
+    const tn = document.querySelector('[data-id="notes"]');
+    if (tn) tn.classList.toggle('on', S.notesMode);
+    if (S.mode === 'daily') $('#dailyTime').textContent = fmt(S.elapsed);
+    if (create) renderCreatePanel();
+  }
+
+  /* ---------------- game logic ---------------- */
+  function pushHistory() {
+    S.hist.push({ grid: Int8Array.from(S.grid), notes: Uint16Array.from(S.notes) });
+    if (S.hist.length > 300) S.hist.shift();
+    S.future.length = 0;
+  }
+  function undo() {
+    if (!S.hist.length) return;
+    S.future.push({ grid: Int8Array.from(S.grid), notes: Uint16Array.from(S.notes) });
+    const s = S.hist.pop();
+    S.grid = s.grid; S.notes = s.notes;
+    S.won = false;
+    renderBoard(); renderPanels();
+  }
+  function redo() {
+    if (!S.future.length) return;
+    S.hist.push({ grid: Int8Array.from(S.grid), notes: Uint16Array.from(S.notes) });
+    const s = S.future.pop();
+    S.grid = s.grid; S.notes = s.notes;
+    renderBoard(); renderPanels();
+  }
+
+  function startTimer() {
+    if (S.timer || S.won) return;
+    S.startAt = Date.now() - S.elapsed;
+    S.timer = setInterval(() => {
+      S.elapsed = Date.now() - S.startAt;
+      $('#statTime').textContent = fmt(S.elapsed);
+      if (S.mode === 'daily') $('#dailyTime').textContent = fmt(S.elapsed);
+    }, 250);
+  }
+  function stopTimer() { if (S.timer) { clearInterval(S.timer); S.timer = null; } }
+
+  function place(i, d) {
+    if (S.mode === 'create') return;
+    if (i < 0 || S.givens[i] || S.won) return;
+    pushHistory();
+    if (S.notesMode) {
+      if (S.grid[i]) S.grid[i] = 0;
+      S.notes[i] ^= (1 << d);
+    } else {
+      if (S.grid[i] === d) S.grid[i] = 0;
+      else {
+        S.grid[i] = d;
+        S.notes[i] = 0;
+        if (S.solution && S.solution[i] !== d) S.errors++;
+      }
+    }
+    S.sel = i;
+    afterMove();
+  }
+  function erase(i) {
+    if (i < 0 || S.givens[i]) return;
+    if (!S.grid[i] && !S.notes[i]) return;
+    pushHistory();
+    S.grid[i] = 0; S.notes[i] = 0;
+    afterMove();
+  }
+  function afterMove() {
+    startTimer();
+    renderBoard(); renderPanels();
+    const filled = Array.from(S.grid).every(Boolean);
+    if (filled) {
+      const conf = SC.conflictsOf(S.grid, S.regions);
+      const vr = SC.validateRegions(S.regions);
+      if (conf.size === 0 && vr.ok) win();
+    }
+  }
+  function win() {
+    S.won = true;
+    stopTimer();
+    const isDaily = S.mode === 'daily';
+    $('#ovTitle').textContent = isDaily ? '今日挑战完成！' : '完成！';
+    $('#ovText').textContent = '用时 ' + fmt(S.elapsed) + ' · 提示 ' + S.hints + ' 次 · 错误 ' + S.errors + ' 次';
+    $('#ovBtn').textContent = isDaily ? '分享成绩' : '再玩一次';
+    $('#overlay').classList.add('on');
+    if (isDaily && S.daily.date) {
+      const res = STORE.get('jsw.daily.results', {});
+      res[S.daily.date] = { ms: S.elapsed, hints: S.hints, errors: S.errors };
+      STORE.set('jsw.daily.results', res);
+      renderDailyDots();
+      $('#btnShareDaily').classList.remove('hidden');
+      $('#btnShareDaily').disabled = false;
+    }
+    renderPanels();
+  }
+
+  function onTool(id) {
+    if (id === 'notes') S.notesMode = !S.notesMode;
+    else if (id === 'erase') { erase(S.sel); return; }
+    else if (id === 'undo') { undo(); return; }
+    else if (id === 'redo') { redo(); return; }
+    renderBoard(); renderPanels();
+  }
+
+  function doHint() {
+    if (S.won) { toast('已经完成了'); return; }
+    if (!S.solution) { toast('这道题没有可用答案，无法提示'); return; }
+    const empties = [];
+    for (let i = 0; i < 81; i++) if (!S.givens[i] && S.grid[i] !== S.solution[i]) empties.push(i);
+    if (!empties.length) { toast('已经全部填对了'); return; }
+    const pick = empties[(Math.random() * empties.length) | 0];
+    pushHistory();
+    S.grid[pick] = S.solution[pick];
+    S.notes[pick] = 0;
+    S.sel = pick;
+    S.hints++;
+    afterMove();
+    toast('已揭示第 ' + (((pick / 9) | 0) + 1) + ' 行第 ' + (pick % 9 + 1) + ' 列');
+  }
+
+  /* ---------------- create mode ---------------- */
+  function createInit() {
+    S.regions = new Int8Array(81).fill(-1);
+    S.grid = new Int8Array(81);
+    S.givens = new Int8Array(81);
+    S.solution = null;
+    S.notes = new Uint16Array(81);
+    S.fixed = new Int8Array(81);
+    S.sel = -1;
+    S.hist = []; S.future = [];
+    S.create = { slot: 0, tool: 'brush', puzzle: null, givensCount: 0, busy: false };
+    S.won = false;
+    $('#createHint').innerHTML = '点选区域槽（R1–R9）后用画笔勾选 9 格；区域可以有 1–9 个，也可以不连通。';
+    $('#createMeta').textContent = '—';
+    $('#btnPlayThis').disabled = true;
+    $('#btnShareCode').disabled = true;
+    renderBoard(); renderPanels();
+  }
+
+  function createSnapshot() {
+    S.hist.push({
+      regions: Int8Array.from(S.regions),
+      grid: Int8Array.from(S.grid),
+      givens: Int8Array.from(S.givens),
+      fixed: Int8Array.from(S.fixed),
+      solution: S.solution ? Int8Array.from(S.solution) : null,
+      notes: Uint16Array.from(S.notes)
+    });
+    if (S.hist.length > 300) S.hist.shift();
+    S.future.length = 0;
+  }
+  function createUndo() {
+    if (!S.hist.length) return;
+    const s = S.hist.pop();
+    S.regions = s.regions; S.grid = s.grid; S.givens = s.givens;
+    S.fixed = s.fixed; S.solution = s.solution; S.notes = s.notes;
+    renderBoard(); renderPanels();
+  }
+  function createRedo() {
+    if (!S.future.length) return;
+    S.future.push({
+      regions: Int8Array.from(S.regions), grid: Int8Array.from(S.grid),
+      givens: Int8Array.from(S.givens), fixed: Int8Array.from(S.fixed),
+      solution: S.solution ? Int8Array.from(S.solution) : null,
+      notes: Uint16Array.from(S.notes)
+    });
+    const s = S.future.pop();
+    S.regions = s.regions; S.grid = s.grid; S.givens = s.givens;
+    S.fixed = s.fixed; S.solution = s.solution; S.notes = s.notes;
+    renderBoard(); renderPanels();
+  }
+
+  function setFixed(i, v) {
+    createSnapshot();
+    S.fixed[i] = v;
+    S.solution = null;
+    S.create.puzzle = null;
+    S.givens = Int8Array.from(S.fixed);
+    S.grid = Int8Array.from(S.fixed);
+    S.notes = new Uint16Array(81);
+    renderBoard(); renderPanels();
+  }
+
+  function paintCell(i, snap) {
+    if (i < 0) return false;
+    const tool = S.create.tool;
+    if (tool === 'eraser') {
+      if (S.regions[i] < 0) return false;
+      if (snap) createSnapshot();
+      S.regions[i] = -1; return true;
+    }
+    if (S.regions[i] === S.create.slot) {
+      if (snap) createSnapshot();
+      S.regions[i] = -1; return true;
+    }
+    const count = SC.regionCells(S.regions, S.create.slot).length;
+    if (count >= 9) { if (snap) toast('R' + (S.create.slot + 1) + ' 已经有 9 格了'); return false; }
+    if (snap) createSnapshot();
+    S.regions[i] = S.create.slot; return true;
+  }
+
+  let slotEls = null;
+  function updateSlots() {
+    if (!slotEls) {
+      const wrap = $('#slots');
+      wrap.innerHTML = '';
+      slotEls = [];
+      for (let k = 0; k < 9; k++) {
+        const b = document.createElement('button');
+        b.innerHTML = '<span class="sw" style="background:' + PAL[k][0] + ';box-shadow:inset 0 0 0 1.5px ' + PAL[k][1] + '"></span>R' + (k + 1) +
+          '<span class="ct">0/9</span>';
+        b.addEventListener('click', () => {
+          if (S.create.busy) return;
+          S.create.slot = k;
+          renderCreatePanel();
+          renderBoard();
+        });
+        wrap.appendChild(b);
+        slotEls.push(b);
+      }
+    }
+    const v = SC.validateRegions(S.regions);
+    for (let k = 0; k < 9; k++) {
+      const b = slotEls[k], n = v.counts[k];
+      b.className = 'slot' + (k === S.create.slot ? ' on' : '') + (n > 0 && n !== 9 ? ' warn' : '') + (n > 0 ? '' : ' idle');
+      b.querySelector('.ct').textContent = n + '/9';
+    }
+    return v;
+  }
+
+  function renderCreatePanel() {
+    const v = updateSlots();
+    const tools = $('#createTools');
+    if (!tools.dataset.built) {
+      tools.dataset.built = '1';
+      const defs = [
+        { id: 'brush', icon: 'brush', label: '画笔' },
+        { id: 'digit', icon: 'digit', label: '数字' },
+        { id: 'eraser', icon: 'eraser', label: '橡皮' },
+        { id: 'undo', icon: 'undo', label: '撤销' }
+      ];
+      for (const d of defs) {
+        const b = document.createElement('button');
+        b.className = 'tool';
+        b.dataset.tool = d.id;
+        b.innerHTML = ICONS[d.icon] + '<span>' + d.label + '</span>';
+        b.addEventListener('click', () => {
+          if (d.id === 'undo') { createUndo(); return; }
+          S.create.tool = d.id;
+          renderCreatePanel();
+          if (d.id === 'digit') toast('点击格子后直接按数字键填入提示数');
+        });
+        tools.appendChild(b);
+      }
+    }
+    for (const b of Array.from(tools.children)) b.classList.toggle('on', b.dataset.tool === S.create.tool);
+
+    const stage = S.create.puzzle ? 4 : (S.solution ? 3 : (S.fixed.some(Boolean) ? 2 : 1));
+    for (const el of $$('#steps .step')) {
+      const n = +el.dataset.step;
+      el.classList.toggle('on', n === stage);
+      el.classList.toggle('done', n < stage);
+    }
+
+    const hintEl = $('#createHint');
+    if (!v.ok) {
+      hintEl.innerHTML = '<b>区域还不完整</b>：' + v.problems.slice(0, 2).map(p => p.msg).join('；');
+    } else if (!S.solution) {
+      hintEl.innerHTML = '共 <b>' + v.defined + '</b> 个区域。可以切到「数字」工具预填提示数，再点「生成答案」。';
+    } else if (!S.create.puzzle) {
+      hintEl.innerHTML = '已生成终盘。设定期望提示数后点「生成题目」，预填的数字会全部保留。';
+    } else {
+      hintEl.innerHTML = '题目已生成：<b>' + S.create.givensCount + '</b> 个提示数，唯一解已校验。';
+    }
+    $('#btnSolve').disabled = !v.ok;
+    $('#btnDig').disabled = !S.solution;
+    $('#btnPlayThis').disabled = !S.create.puzzle;
+    $('#btnShareCode').disabled = !S.create.puzzle;
+  }
+
+  function setProgress(pct) {
+    const bar = document.getElementById('progBar');
+    if (bar) bar.style.width = Math.max(0, Math.min(100, pct)) + '%';
+  }
+  function setCreateBusy(flag, msg) {
+    S.create.busy = flag;
+    const wrap = document.getElementById('progWrap');
+    if (wrap) wrap.classList.toggle('hidden', !flag);
+    if (flag) {
+      setProgress(0);
+      const hint = document.getElementById('createHint');
+      if (hint && msg) hint.innerHTML = '<b>' + msg + '</b>';
+      for (const id of ['btnRandomRegions', 'btnClearRegions', 'btnSolve', 'btnDig', 'btnCheckCreate', 'btnShareCode']) {
+        const el = document.getElementById(id);
+        if (el) el.disabled = true;
+      }
+    } else {
+      for (const id of ['btnRandomRegions', 'btnClearRegions', 'btnCheckCreate']) {
+        const el = document.getElementById(id);
+        if (el) el.disabled = false;
+      }
+      renderCreatePanel();
+    }
+  }
+
+  function doRandomRegions() {
+    if (S.create.busy) return;
+    setCreateBusy(true, '正在生成随机区域…');
+    const rng = SC.mulberry32((Math.random() * 1e9) | 0);
+    const sol = SC.genSolution(rng);
+    const reg = SC.boxPartition();
+    const total = 1400, chunk = 100;
+    let done = 0;
+    setTimeout(function tick() {
+      try {
+        SC.meltStep(rng, sol, reg, Math.min(chunk, total - done));
+        done += chunk;
+        setProgress(done / total * 96);
+        if (done < total) { setTimeout(tick, 0); return; }
+        createSnapshot();
+        S.regions = reg;
+        S.solution = sol;
+        S.grid = Int8Array.from(sol);
+        S.givens = Int8Array.from(sol);
+        S.create.puzzle = null;
+        S.fixed = new Int8Array(81);
+        setCreateBusy(false);
+        setProgress(0);
+        renderBoard();
+        renderPanels();
+        toast('随机区域已生成（' + SC.validateRegions(reg).defined + ' 个区域）');
+      } catch (err) {
+        setCreateBusy(false);
+        toast('生成失败：' + err.message);
+      }
+    }, 20);
+  }
+
+  function fixedConflicts() {
+    // 预填数字之间不能在同一行/列/宫/区域重复
+    const bad = [];
+    for (const u of SC.unitList(S.regions)) {
+      const seen = new Map();
+      for (const i of u.cells) {
+        const v = S.fixed[i];
+        if (!v) continue;
+        if (seen.has(v)) bad.push({ first: seen.get(v), second: i });
+        else seen.set(v, i);
+      }
+    }
+    return bad;
+  }
+
+  function doSolve() {
+    if (S.create.busy) return;
+    const v = SC.validateRegions(S.regions);
+    if (!v.ok) { toast(v.problems[0].msg); return; }
+    const dup = fixedConflicts();
+    if (dup.length) {
+      const a = dup[0].first, b = dup[0].second;
+      toast('预填数字有冲突：第 ' + (((a / 9) | 0) + 1) + ' 行第 ' + (a % 9 + 1) + ' 列 与 第 ' +
+        (((b / 9) | 0) + 1) + ' 行第 ' + (b % 9 + 1) + ' 列');
+      return;
+    }
+    $('#createHint').innerHTML = '正在求解…';
+    setTimeout(() => {
+      const t0 = Date.now();
+      const res = SC.solver(Int8Array.from(S.fixed), S.regions, { limit: 2, nodeLimit: 6e5, deadline: Date.now() + 4000 });
+      if (!res.first) {
+        const msg = res.aborted
+          ? '求解超时，无法生成答案。区域划分可能太苛刻，或预填数字与区域冲突。\n建议减少预填数字或换一组区域。'
+          : '这组区域与预填数字无解，无法生成答案。\n请调整区域边界或检查预填数字。';
+        $('#createHint').innerHTML = '<b>无法生成答案</b>：' + (res.aborted ? '搜索超时' : '无解');
+        popup('无法生成答案', msg);
+        return;
+      }
+      createSnapshot();
+      S.solution = res.first;
+      S.grid = Int8Array.from(res.first);
+      S.givens = Int8Array.from(res.first);
+      S.notes = new Uint16Array(81);
+      S.create.puzzle = null;
+      renderBoard(); renderPanels();
+      toast('答案已生成（' + (Date.now() - t0) + ' ms）');
+    }, 30);
+  }
+
+  function doDig() {
+    if (!S.solution || S.create.busy) return;
+    const target = +$('#digRange').value;
+    const strict = $('#chkExact').checked;
+    const fixedCount = Array.from(S.fixed).filter(Boolean).length;
+    if (strict && fixedCount > target) {
+      popup('提示数不够', '你预填了 ' + fixedCount + ' 个数字，超过设定的 ' + target + ' 个提示数。\n请把提示数调到 ' + fixedCount + ' 以上，或取消「仅使用当前提示数」。');
+      return;
+    }
+    setCreateBusy(true, strict ? '正在生成恰好 ' + target + ' 个提示数的题目…' : '正在挖空并校验唯一解…');
+    const attempts = strict ? 3 : 1;
+    let attempt = 0, best = null;
+    const finish = () => {
+      setCreateBusy(false);
+      createSnapshot();
+      S.givens = best.puzzle;
+      S.grid = Int8Array.from(best.puzzle);
+      S.notes = new Uint16Array(81);
+      S.create.puzzle = Int8Array.from(best.puzzle);
+      S.create.givensCount = best.givens;
+      $('#createMeta').textContent = best.givens + ' 提示数';
+      renderBoard();
+      renderPanels();
+      if (strict && best.givens !== target) {
+        $('#createHint').innerHTML = '<b>提示数不足</b>：当前条件下最少需要 ' + best.givens + ' 个提示数才能保证唯一解。';
+        popup('无法恰好使用 ' + target + ' 个提示数',
+          '在当前区域划分和预填数字下，最少需要 ' + best.givens + ' 个提示数才能保证唯一解。\n\n已按 ' + best.givens +
+          ' 个生成。想要更少的提示数，可以调整区域，或取消「仅使用当前提示数」。');
+        return;
+      }
+      const chk = SC.solver(best.puzzle, S.regions, { limit: 2, nodeLimit: 3e6 });
+      if (chk.count !== 1) {
+        $('#createHint').innerHTML = '<b>无法生成唯一解</b>，请调大提示数。';
+        popup('无法生成唯一解', '当前提示数下题目有 ' + (chk.count === 0 ? '0' : '多个') + ' 个解。\n请把「提示数」滑块调大一些再试。');
+        return;
+      }
+      toast(strict ? '已生成恰好 ' + best.givens + ' 个提示数的题目（唯一解）' : '题目已生成：' + best.givens + ' 个提示，唯一解');
+      if (strict) setProgress(100);
+    };
+
+    const runAttempt = () => {
+      const rng = SC.mulberry32((Math.random() * 1e9) | 0);
+      const d = SC.makeDigger(rng, S.solution, S.regions, target, S.fixed);
+      const pump = () => {
+        try {
+          let n = 0;
+          while (n < 6 && !d.done()) { d.step(); n++; }
+          const removed = 81 - d.givens;
+          const need = Math.max(1, 81 - target);
+          setProgress(Math.min(96, removed / need * 100));
+          if (!d.done()) { setTimeout(pump, 0); return; }
+          const res = d.result();
+          if (!best || res.givens < best.givens) best = res;
+          if (!strict || best.givens <= target || attempt + 1 >= attempts) { finish(); return; }
+          attempt++;
+          runAttempt();
+        } catch (err) {
+          setCreateBusy(false);
+          toast('生成失败：' + err.message);
+        }
+      };
+      pump();
+    };
+    runAttempt();
+  }
+
+  function doCheckCreate() {
+    if (S.create.busy) return;
+    const v = SC.validateRegions(S.regions);
+    if (!v.ok) { popup('区域不合法', v.problems.map(p => p.msg).join('\n')); return; }
+    if (!S.create.puzzle) { toast('先生成题目再校验'); return; }
+    const chk = SC.solver(S.create.puzzle, S.regions, { limit: 3, nodeLimit: 3e6 });
+    if (chk.count !== 1) { popup('校验未通过', '这道题有 ' + (chk.count === 0 ? '0' : chk.count + ' 个以上') + ' 个解。'); return; }
+    const full = SC.checkGrid(S.solution, S.regions);
+    if (!full.ok) { popup('校验未通过', full.issues.map(i => i.msg).join('\n')); return; }
+    popup('校验通过', '区域合法、终盘满足行/列/宫/区域四条规则、题目唯一解。');
+  }
+
+  /* ---------------- share / import ---------------- */
+  function doShareCode() {
+    if (!S.create.puzzle) return;
+    const code = SC.encodeCode(S.regions, S.create.puzzle);
+    copyText(code, '分享码已复制（' + code.length + ' 字符）');
+  }
+
+  function openImport() {
+    $('#importText').value = '';
+    $('#importModal').classList.add('on');
+    setTimeout(() => $('#importText').focus(), 30);
+  }
+  function doImport() {
+    const code = $('#importText').value;
+    const data = SC.decodeCode(code);
+    if (!data) { toast('分享码无效，请检查是否完整'); return; }
+    const vr = SC.validateRegions(data.regions);
+    if (!vr.ok) { toast('分享码里的区域不合法：' + vr.problems[0].msg); return; }
+    const res = SC.solver(data.givens, data.regions, { limit: 2, nodeLimit: 3e6 });
+    if (!res.first) { toast('这个分享码没有合法解'); return; }
+    $('#importModal').classList.remove('on');
+    setMode('play', { keep: true });
+    S.regions = data.regions;
+    S.givens = data.givens;
+    S.grid = Int8Array.from(data.givens);
+    S.solution = res.first;
+    S.notes = new Uint16Array(81);
+    S.fixed = new Int8Array(81);
+    S.sel = -1; S.hist = []; S.future = [];
+    S.hints = 0; S.errors = 0; S.elapsed = 0; S.won = false;
+    S.playLoaded = true;
+    stopTimer();
+    $('#overlay').classList.remove('on');
+    $('#topChipText').textContent = '导入的题目';
+    renderBoard(); renderPanels();
+    toast('导入成功' + (res.count > 1 ? '（注意：多解）' : ''));
+  }
+
+  /* ---------------- validation ---------------- */
+  function validateAndReport() {
+    const vr = SC.validateRegions(S.regions);
+    if (!vr.ok) { toast('区域不合法：' + vr.problems[0].msg); return false; }
+    const chk = SC.checkGrid(S.grid, S.regions);
+    if (!chk.ok) {
+      const msg = chk.empty
+        ? '还有 ' + chk.empty + ' 个空格没填' + (chk.issues.length ? '，并且有 ' + chk.issues.length + ' 处冲突' : '')
+        : chk.issues[0].msg;
+      toast(msg);
+      return false;
+    }
+    toast('校验通过：行、列、3×3 宫、异形区域全部合法');
+    return true;
+  }
+
+  /* ---------------- daily ---------------- */
+  function loadDaily(force) {
+    const date = todayStr();
+    S.daily.date = date;
+    $('#dailyDate').textContent = date;
+    const cached = STORE.get('jsw.daily.' + date, null);
+    if (cached && force !== 'regen') { applyDaily(cached); return; }
+    $('#dailyHint').textContent = '正在生成今日题目… 首次约需 1–2 秒';
+    setTimeout(function () {
+      const built = SC.buildDaily(date, { iters: 1400, target: 34 });
+      const data = {
+        regions: Array.from(built.regions),
+        givens: Array.from(built.givens),
+        solution: Array.from(built.solution)
+      };
+      try { localStorage.setItem('jsw.daily.' + date, JSON.stringify(data)); } catch (e) {}
+      $('#dailyHint').textContent = '每天一道固定的异形数独，全平台同一题。';
+      applyDaily(data);
+    }, 40);
+  }
+
+  function applyDaily(data) {
+    S.regions = Int8Array.from(data.regions);
+    S.givens = Int8Array.from(data.givens);
+    S.grid = Int8Array.from(data.givens);
+    S.solution = Int8Array.from(data.solution);
+    S.notes = new Uint16Array(81);
+    S.fixed = new Int8Array(81);
+    S.sel = -1; S.hist = []; S.future = [];
+    S.hints = 0; S.errors = 0; S.elapsed = 0; S.won = false;
+    stopTimer();
+    $('#overlay').classList.remove('on');
+    const res = STORE.get('jsw.daily.results', {});
+    const done = !!res[S.daily.date];
+    $('#btnShareDaily').classList.toggle('hidden', !done);
+    renderBoard(); renderPanels(); renderDailyDots();
+  }
+
+  function renderDailyDots() {
+    const box = $('#dailyDots');
+    const res = STORE.get('jsw.daily.results', {});
+    const today = todayStr();
+    let streak = 0;
+    let d = res[today] ? today : dateAdd(today, -1);
+    for (let i = 0; i < 400; i++) {
+      if (res[d]) { streak++; d = dateAdd(d, -1); } else break;
+    }
+    $('#dailyStreak').textContent = streak;
+    box.innerHTML = '';
+    for (let i = 6; i >= 0; i--) {
+      const day = dateAdd(today, -i);
+      const el = document.createElement('div');
+      el.className = 'day' + (res[day] ? ' ok' : '') + (i === 0 ? ' today' : '');
+      el.textContent = day.slice(5).replace('-', '/');
+      el.title = day + (res[day] ? ' 已完成' : ' 未完成');
+      box.appendChild(el);
+    }
+  }
+
+  function dailyShareText() {
+    return '我在SudokuHelper的每日一题中使用' + S.hints + '次提示，用时' + fmtCJK(S.elapsed) +
+      '完成了解密！' + appUrl();
+  }
+  function shareDaily() {
+    if (!S.won) { toast('完成后再分享成绩吧'); return; }
+    copyText(dailyShareText(), '分享文案已复制');
+  }
+
+  /* ---------------- modal / popup ---------------- */
+  function popup(title, msg) {
+    $('#importText').value = '';
+    $('#importModal').classList.add('on');
+    const card = $('#importModal .modal-card');
+    card.querySelector('h3').textContent = title;
+    card.querySelector('p').textContent = msg;
+    $('#importText').classList.add('hidden');
+    $('#importOk').textContent = '知道了';
+    $('#importOk').dataset.mode = 'info';
+  }
+  function closeModal() {
+    $('#importModal').classList.remove('on');
+    $('#importText').classList.remove('hidden');
+    $('#importOk').textContent = '导入';
+    $('#importOk').dataset.mode = 'import';
+  }
+
+  /* ---------------- mode switching ---------------- */
+  function setMode(mode, opts) {
+    opts = opts || {};
+    S.mode = mode;
+    for (const b of $$('#tabs button')) b.classList.toggle('on', b.dataset.tab === mode);
+    $('#panel-game').classList.toggle('hidden', mode === 'create');
+    $('#panel-create').classList.toggle('hidden', mode !== 'create');
+    $('#dailyBox').classList.toggle('hidden', mode !== 'daily');
+    $('#candBox').classList.toggle('hidden', mode !== 'play');
+    $('#btnShareDaily').classList.toggle('hidden', mode !== 'daily' || !S.won);
+    $('#overlay').classList.remove('on');
+    stopTimer();
+    if (mode === 'create') {
+      createInit();
+      $('#topChipText').textContent = '出题 · 编辑器';
+    } else if (mode === 'daily') {
+      loadDaily();
+      $('#topChipText').textContent = '每日一题';
+    } else {
+      if (!opts.keep && !S.playLoaded) loadDefault();
+      S.playLoaded = true;
+      $('#topChipText').textContent = '异形 · 标准';
+    }
+    if (mode !== 'play') { S.showCand = false; $('#chkCand').checked = false; }
+  }
+
+  function loadDefault() {
+    S.regions = Int8Array.from(DEFAULT_R.split('').map(Number));
+    S.solution = Int8Array.from(DEFAULT_S.split('').map(Number));
+    S.givens = Int8Array.from(DEFAULT_G.split('').map(Number));
+    S.grid = Int8Array.from(S.givens);
+    S.notes = new Uint16Array(81);
+    S.fixed = new Int8Array(81);
+    S.sel = -1; S.hist = []; S.future = [];
+    S.hints = 0; S.errors = 0; S.elapsed = 0; S.won = false;
+    S.playLoaded = true;
+    stopTimer();
+    renderBoard(); renderPanels();
+  }
+
+  /* ---------------- events ---------------- */
+  let lastPaint = -1;
+  function autoAdvanceSlot() {
+    if (SC.regionCells(S.regions, S.create.slot).length < 9) return false;
+    for (let step = 1; step <= 9; step++) {
+      const k = (S.create.slot + step) % 9;
+      if (SC.regionCells(S.regions, k).length === 0) { S.create.slot = k; return true; }
+    }
+    return false;
+  }
+
+  boardEl.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    const i = cellFromEvent(e);
+    if (i < 0) return;
+    e.preventDefault();
+    S.sel = i;
+    try { boardEl.setPointerCapture(e.pointerId); } catch (err) {}
+    if (S.mode === 'create') {
+      if (S.create.busy) { renderBoard(); return; }
+      painting = true; dragStart = i; dragCur = i; lastPaint = i;
+      if (S.create.tool === 'brush' || S.create.tool === 'eraser') paintCell(i, true);
+      renderBoard(); renderPanels();
+      return;
+    }
+    renderBoard(); renderPanels();
+    startTimer();
+  });
+
+  boardEl.addEventListener('pointermove', (e) => {
+    if (!painting || S.mode !== 'create' || S.create.busy) return;
+    const i = cellFromEvent(e);
+    if (i < 0 || i === lastPaint) return;
+    if (S.create.tool === 'brush' || S.create.tool === 'eraser') {
+      lastPaint = i;
+      if (paintCell(i, false)) scheduleRender();
+    }
+  });
+
+  boardEl.addEventListener('pointerup', () => {
+    if (S.mode === 'create' && painting) {
+      const advanced = autoAdvanceSlot();
+      renderBoard(); renderPanels();
+      if (advanced) toast('R' + (S.create.slot + 1) + ' 已自动选中');
+    }
+    painting = false; dragStart = -1; dragCur = -1; lastPaint = -1;
+  });
+  boardEl.addEventListener('pointercancel', () => {
+    painting = false; dragStart = -1; dragCur = -1; lastPaint = -1;
+  });
+
+  document.addEventListener('keydown', (e) => {
+    const tag = (e.target && e.target.tagName) || '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+    if (e.ctrlKey || e.metaKey) {
+      if (e.key.toLowerCase() === 'z') { e.preventDefault(); S.mode === 'create' ? (e.shiftKey ? createRedo() : createUndo()) : (e.shiftKey ? redo() : undo()); }
+      if (e.key.toLowerCase() === 'y') { e.preventDefault(); S.mode === 'create' ? createRedo() : redo(); }
+      return;
+    }
+    if (S.mode === 'create') {
+      if (e.key >= '1' && e.key <= '9' && S.sel >= 0) {
+        e.preventDefault();
+        setFixed(S.sel, +e.key);
+        return;
+      }
+      if ((e.key === 'Backspace' || e.key === 'Delete') && S.sel >= 0) {
+        e.preventDefault();
+        if (S.fixed[S.sel]) setFixed(S.sel, 0);
+        return;
+      }
+      const mv = { ArrowUp: -9, ArrowDown: 9, ArrowLeft: -1, ArrowRight: 1 };
+      if (mv[e.key]) {
+        e.preventDefault();
+        if (S.sel < 0) S.sel = 40;
+        else {
+          const r = (S.sel / 9) | 0, c = S.sel % 9;
+          let nr = r, nc = c;
+          if (e.key === 'ArrowUp') nr = Math.max(0, r - 1);
+          if (e.key === 'ArrowDown') nr = Math.min(8, r + 1);
+          if (e.key === 'ArrowLeft') nc = Math.max(0, c - 1);
+          if (e.key === 'ArrowRight') nc = Math.min(8, c + 1);
+          S.sel = nr * 9 + nc;
+        }
+        renderBoard(); renderPanels();
+      }
+      return;
+    }
+    if (e.key >= '1' && e.key <= '9') { e.preventDefault(); place(S.sel, +e.key); return; }
+    if (e.key === 'Backspace' || e.key === 'Delete') { e.preventDefault(); erase(S.sel); return; }
+    if (e.key.toLowerCase() === 'n') { S.notesMode = !S.notesMode; renderPanels(); return; }
+    const moves = { ArrowUp: -9, ArrowDown: 9, ArrowLeft: -1, ArrowRight: 1 };
+    if (moves[e.key]) {
+      e.preventDefault();
+      if (S.sel < 0) S.sel = 40;
+      else {
+        const r = (S.sel / 9) | 0, c = S.sel % 9;
+        let nr = r, nc = c;
+        if (e.key === 'ArrowUp') nr = Math.max(0, r - 1);
+        if (e.key === 'ArrowDown') nr = Math.min(8, r + 1);
+        if (e.key === 'ArrowLeft') nc = Math.max(0, c - 1);
+        if (e.key === 'ArrowRight') nc = Math.min(8, c + 1);
+        S.sel = nr * 9 + nc;
+      }
+      renderBoard(); renderPanels();
+    }
+  });
+
+  for (const b of $$('#tabs button')) b.addEventListener('click', () => setMode(b.dataset.tab));
+  $('#btnCheck').addEventListener('click', validateAndReport);
+  $('#btnReset').addEventListener('click', () => {
+    if (S.mode === 'daily') {
+      S.grid = Int8Array.from(S.givens);
+      S.notes = new Uint16Array(81);
+      S.sel = -1; S.hist = []; S.future = [];
+      S.elapsed = 0; S.hints = 0; S.errors = 0; S.won = false;
+      stopTimer(); renderBoard(); renderPanels();
+    } else loadDefault();
+    toast('已重新开始');
+  });
+  $('#btnHint').addEventListener('click', doHint);
+  $('#chkCand').addEventListener('change', (e) => {
+    S.showCand = e.target.checked;
+    renderBoard();
+  });
+  $('#btnImport').addEventListener('click', openImport);
+  $('#btnShareDaily').addEventListener('click', shareDaily);
+  $('#importCancel').addEventListener('click', closeModal);
+  $('#importOk').addEventListener('click', () => {
+    if ($('#importOk').dataset.mode === 'info') { closeModal(); return; }
+    doImport();
+  });
+  $('#importModal').addEventListener('click', (e) => { if (e.target.id === 'importModal') closeModal(); });
+
+  $('#btnRandomRegions').addEventListener('click', doRandomRegions);
+  $('#btnClearRegions').addEventListener('click', () => {
+    if (S.create.busy) return;
+    createSnapshot();
+    S.regions = new Int8Array(81).fill(-1);
+    S.solution = null;
+    S.grid = new Int8Array(81);
+    S.givens = new Int8Array(81);
+    S.fixed = new Int8Array(81);
+    S.notes = new Uint16Array(81);
+    S.sel = -1;
+    S.create.puzzle = null;
+    S.create.givensCount = 0;
+    $('#createMeta').textContent = '—';
+    renderBoard(); renderPanels();
+    toast('已清空区域、答案和预填数字');
+  });
+  $('#btnSolve').addEventListener('click', doSolve);
+  $('#btnDig').addEventListener('click', doDig);
+  $('#btnCheckCreate').addEventListener('click', doCheckCreate);
+  $('#btnShareCode').addEventListener('click', doShareCode);
+  $('#btnPlayThis').addEventListener('click', () => {
+    if (!S.create.puzzle) return;
+    const regions = Int8Array.from(S.regions), puzzle = Int8Array.from(S.create.puzzle);
+    const solution = Int8Array.from(S.solution);
+    setMode('play', { keep: true });
+    S.regions = regions;
+    S.givens = puzzle;
+    S.grid = Int8Array.from(puzzle);
+    S.solution = solution;
+    S.notes = new Uint16Array(81);
+    S.sel = -1; S.hist = []; S.future = [];
+    S.elapsed = 0; S.hints = 0; S.errors = 0; S.won = false;
+    S.playLoaded = true;
+    $('#topChipText').textContent = '自出题';
+    renderBoard(); renderPanels();
+  });
+  $('#digRange').addEventListener('input', (e) => { $('#digVal').textContent = e.target.value; });
+  $('#chkExact').addEventListener('change', (e) => {
+    const fixedCount = Array.from(S.fixed).filter(Boolean).length;
+    const range = $('#digRange');
+    if (e.target.checked && fixedCount > +range.value) {
+      range.value = Math.min(50, fixedCount);
+      $('#digVal').textContent = range.value;
+      toast('已预填 ' + fixedCount + ' 个数字，提示数自动调到 ' + range.value);
+    }
+  });
+  $('#ovBtn').addEventListener('click', () => {
+    if (S.mode === 'daily') { shareDaily(); return; }
+    $('#overlay').classList.remove('on');
+    if (S.mode === 'play') loadDefault();
+    else createInit();
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) stopTimer();
+    else if (!S.won && S.mode !== 'create') startTimer();
+  });
+
+  /* ---------------- boot ---------------- */
+  buildTools();
+  renderDailyDots();
+
+  (function boot() {
+    const tab = new URLSearchParams(location.search).get('tab');
+    if (tab === 'create' || tab === 'daily') {
+      setMode(tab);
+      S.playLoaded = true;
+      return;
+    }
+    const hash = (location.hash || '').replace(/^#/, '');
+    if (hash.length > 10) {
+      const data = SC.decodeCode(hash);
+      if (data) {
+        const res = SC.solver(data.givens, data.regions, { limit: 2, nodeLimit: 3e6 });
+        S.regions = data.regions;
+        S.givens = data.givens;
+        S.grid = Int8Array.from(data.givens);
+        S.solution = res.first || null;
+        S.notes = new Uint16Array(81);
+        S.playLoaded = true;
+        renderBoard(); renderPanels();
+        if (res.count > 1) toast('注意：这道题有多个解');
+        if (res.count === 0) toast('注意：这个分享码没有合法解');
+        return;
+      }
+    }
+    loadDefault();
+  })();
+
+})();
+</script>
+</body>
+</html>

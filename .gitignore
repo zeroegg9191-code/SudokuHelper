@@ -1,0 +1,13 @@
+# 系统 / 编辑器
+.DS_Store
+Thumbs.db
+desktop.ini
+.dsh-probe
+.vscode/
+.idea/
+
+# 临时脚本与产物
+tools/_*.js
+tools/_*.py
+ui/app-dom.html
+*.log
