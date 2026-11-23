@@ -158,54 +158,8 @@ input[type=range]{accent-color:var(--accent)}
   border-top:1px solid var(--line);font-size:12px;color:var(--muted);flex-wrap:wrap}
 .footer a{color:var(--accent);text-decoration:none;font-weight:600}
 .footer a:hover{text-decoration:underline}
+.board-wrap.hc{box-shadow:0 0 0 2px #0B0D12,0 2px 10px rgba(16,24,40,.16)}
 
-/* ---------- 高对比色模式 ---------- */
-body.hc{background:#07090E;color:#F5F7FB;--ink:#F5F7FB;--muted:#C2CADA;--line:#333B4D;--card:#12161E;
-  --bg:#07090E;--accent:#8B93FF;--shadow:0 1px 2px rgba(0,0,0,.6),0 14px 32px -14px rgba(0,0,0,.9)}
-body.hc .card{background:#12161E;border-color:#333B4D}
-body.hc .topbar .brand b{color:#fff}
-body.hc .tabs{background:#1B2130}
-body.hc .tabs button{color:#CBD3E1}
-body.hc .tabs button.on{background:#39415A;color:#fff}
-body.hc .chip{background:#1B2130;border-color:#39415A;color:#E2E8F4}
-body.hc .btn{background:#1B2130;border-color:#3A4358;color:#F0F3F9}
-body.hc .btn:hover{background:#242C3D}
-body.hc .btn.primary{background:linear-gradient(140deg,#6D74FF,#9B5BFF);color:#fff}
-body.hc .tool{background:#171C27;border-color:#333B4D;color:#D7DEEA}
-body.hc .tool:hover{background:#202736}
-body.hc .tool.on{background:#2B3160;border-color:#6D74FF;color:#D9DBFF}
-body.hc .pill{background:#1B2130;border-color:#3A4358;color:#E2E8F4}
-body.hc .pill.green{background:#0E2F1C;border-color:#2A7A47;color:#9BF0B9}
-body.hc .pill.red{background:#3A1414;border-color:#8C3030;color:#FFBDBD}
-body.hc .pill.amber{background:#38290B;border-color:#8A6A16;color:#FFD98A}
-body.hc .pill.blue{background:#1D2350;border-color:#4B54A8;color:#C9CDFF}
-body.hc .slot{background:#171C27;border-color:#333B4D;color:#F0F3F9}
-body.hc .slot.on{outline-color:#8B93FF}
-body.hc .slot.warn{background:#38290B;border-color:#8A6A16;color:#FFD98A}
-body.hc .slot.idle{color:#8C97AB}
-body.hc .kbd{background:#1B2130;border-color:#3A4358;color:#D7DEEA}
-body.hc .bar,body.hc .prog{background:#263041}
-body.hc .day{background:#171C27;border-color:#333B4D;color:#B9C2D3}
-body.hc .day.ok{background:#0E2F1C;border-color:#2A7A47;color:#9BF0B9}
-body.hc .day.today{background:#232A3B;color:#F0F3F9;outline-color:#8B93FF}
-body.hc .hintline{color:#C2CADA}
-body.hc .hintline b{color:#AEB4FF}
-body.hc .footnote,body.hc .stat .k{color:#98A2B8}
-body.hc .muted{color:#A8B2C6}
-body.hc .range{color:#D7DEEA}
-body.hc .overlay{background:rgba(7,9,14,.9);color:#F5F7FB}
-body.hc .loading{background:rgba(7,9,14,.92)}
-body.hc #loadingText{color:#E2E8F4}
-body.hc .spinner{border-color:#333B4D;border-top-color:#8B93FF}
-body.hc .modal-card{background:#12161E;border:1px solid #333B4D}
-body.hc .modal-card p{color:#B9C2D3}
-body.hc .modal-card textarea{background:#0C1017;border-color:#333B4D;color:#F0F3F9}
-body.hc .board-wrap{background:#fff;box-shadow:0 0 0 2px #6D74FF,0 2px 8px rgba(0,0,0,.6)}
-body.hc #errbox{background:#3A1414;border-color:#8C3030;color:#FFBDBD}
-body.hc .footer a{color:#AEB4FF}
-body.hc .switch input{background:#3A4358}
-body.hc .switch input:checked{background:#6D74FF}
-body.hc .switch span{color:#E2E8F4}
 </style>
 </head>
 <body>
@@ -366,7 +320,7 @@ body.hc .switch span{color:#E2E8F4}
 
   <footer class="footer">
     <div>SudokuHelper · MIT License · <a href="https://github.com/zeregg9191-code" target="_blank" rel="noopener noreferrer">GitHub @zeregg9191-code</a></div>
-    <label class="switch" style="margin:0"><input type="checkbox" id="chkHC"><span>高对比色模式</span></label>
+    <label class="switch" style="margin:0"><input type="checkbox" id="chkHC"><span title="棋盘换成更浅的底色、更深的线条，选中数字时整格反白">高对比配色</span></label>
   </footer>
 </div>
 
@@ -890,6 +844,12 @@ if (typeof globalThis !== 'undefined') globalThis.SC = SC;
     return /^https?:/i.test(u) ? u : '【网址】';
   }
 
+  // 高对比配色：底色接近白、边框更深，让数字高亮更扎眼
+  const PAL_HC = [
+    ['#FFF3F3', '#B3373B'], ['#FFF5E8', '#A35A18'], ['#FDFAE0', '#7F6B10'],
+    ['#F2FBEA', '#3B7A2C'], ['#E9F9F5', '#1B6E60'], ['#EEF4FF', '#2A5AA8'],
+    ['#F3F0FF', '#4A3A9A'], ['#FCF0FD', '#783D8C'], ['#FFF1F7', '#96355F']
+  ];
   const PAL = [
     ['#FFDCDC', '#D97070'], ['#FFE0B8', '#CE8236'], ['#F5ECAF', '#AE9B33'],
     ['#D3EDC3', '#689B54'], ['#C2E9DF', '#3E9384'], ['#CFDEF8', '#567FC0'],
@@ -1001,11 +961,13 @@ if (typeof globalThis !== 'undefined') globalThis.SC = SC;
     const conflicts = create ? new Set() : SC.conflictsOf(grid, regions);
     const selDigit = S.sel >= 0 ? grid[S.sel] : 0;
     const showCand = S.mode === 'play' && S.showCand;
+    const hc = !!S.hc;
+    const pal = hc ? PAL_HC : PAL;
     const parts = [];
     parts.push('<g>');
     for (let i = 0; i < 81; i++) {
       const r = (i / 9) | 0, c = i % 9, k = regions[i];
-      const fill = k >= 0 ? PAL[k][0] : (create ? '#F6F7FB' : '#FFFFFF');
+      const fill = k >= 0 ? pal[k][0] : (create ? '#F6F7FB' : '#FFFFFF');
       parts.push('<rect x="' + c + '" y="' + r + '" width="1" height="1" fill="' + fill + '"/>');
     }
     parts.push('</g>');
@@ -1013,16 +975,23 @@ if (typeof globalThis !== 'undefined') globalThis.SC = SC;
     parts.push('<g>');
     for (let i = 0; i < 81; i++) {
       const r = (i / 9) | 0, c = i % 9;
-      if (selDigit && grid[i] === selDigit) parts.push('<rect x="' + c + '" y="' + r + '" width="1" height="1" fill="#4F46E5" fill-opacity="0.13"/>');
-      if (conflicts.has(i)) parts.push('<rect x="' + c + '" y="' + r + '" width="1" height="1" fill="#EF4444" fill-opacity="0.18"/>');
+      if (selDigit && grid[i] === selDigit) {
+        parts.push(hc
+          ? '<rect x="' + c + '" y="' + r + '" width="1" height="1" fill="#0E1220"/>'
+          : '<rect x="' + c + '" y="' + r + '" width="1" height="1" fill="#4F46E5" fill-opacity="0.13"/>');
+      }
+      if (conflicts.has(i)) {
+        parts.push(hc
+          ? '<rect x="' + c + '" y="' + r + '" width="1" height="1" fill="#C81E1E"/>'
+          : '<rect x="' + c + '" y="' + r + '" width="1" height="1" fill="#EF4444" fill-opacity="0.18"/>');
+      }
     }
     parts.push('</g>');
 
     // lines
-    const hc = !!S.hc;
-    const thin = '<g stroke="#1D2333" stroke-opacity="' + (hc ? '0.22' : '0.11') + '" stroke-width="' + (hc ? '0.022' : '0.017') + '">';
-    const box = '<g stroke="' + (hc ? '#2F3849' : '#666E80') + '" stroke-width="' + (hc ? '0.06' : '0.048') + '">';
-    const thick = '<g stroke="#0B0D12" stroke-width="' + (hc ? '0.08' : '0.064') + '" stroke-linecap="square">';
+    const thin = '<g stroke="#1D2333" stroke-opacity="' + (hc ? '0.28' : '0.11') + '" stroke-width="' + (hc ? '0.024' : '0.017') + '">';
+    const box = '<g stroke="' + (hc ? '#20283A' : '#666E80') + '" stroke-width="' + (hc ? '0.07' : '0.048') + '">';
+    const thick = '<g stroke="#05070D" stroke-width="' + (hc ? '0.085' : '0.064') + '" stroke-linecap="square">';
     const dash = '<g stroke="#8E97AC" stroke-width="0.030" stroke-dasharray="0.14 0.10">';
     let t1 = '', t2 = '', t3 = '', t4 = '';
     for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) {
@@ -1057,8 +1026,10 @@ if (typeof globalThis !== 'undefined') globalThis.SC = SC;
       const r = (i / 9) | 0, c = i % 9;
       const v = grid[i];
       if (v) {
-        let color = givens[i] ? '#1B2030' : '#2F4FD8';
-        if (conflicts.has(i)) color = '#DC2626';
+        const isSelNum = selDigit && grid[i] === selDigit;
+        let color;
+        if (hc) color = (conflicts.has(i) || isSelNum) ? '#FFFFFF' : (givens[i] ? '#05070D' : '#15308F');
+        else color = conflicts.has(i) ? '#DC2626' : (givens[i] ? '#1B2030' : '#2F4FD8');
         parts.push('<text x="' + (c + 0.5) + '" y="' + (r + 0.53) + '" font-size="0.52" font-weight="600" fill="' + color + '">' + v + '</text>');
         if (create && S.fixed[i]) {
           parts.push('<circle cx="' + (c + 0.78) + '" cy="' + (r + 0.8) + '" r="0.045" fill="#4F46E5" fill-opacity="0.7"/>');
@@ -1100,15 +1071,16 @@ if (typeof globalThis !== 'undefined') globalThis.SC = SC;
           if (d < bd) { bd = d; best = i; }
         }
         const r = (best / 9) | 0, c = best % 9;
-        parts.push('<rect x="' + (c + 0.5 - 0.16) + '" y="' + (r + 0.5 - 0.11) + '" width="0.32" height="0.22" rx="0.05" fill="#fff" fill-opacity="0.88" stroke="' + PAL[k][1] + '" stroke-width="0.018"/>');
-        parts.push('<text x="' + (c + 0.5) + '" y="' + (r + 0.51) + '" font-size="0.15" font-weight="700" fill="' + PAL[k][1] + '">R' + (k + 1) + '</text>');
+        parts.push('<rect x="' + (c + 0.5 - 0.16) + '" y="' + (r + 0.5 - 0.11) + '" width="0.32" height="0.22" rx="0.05" fill="#fff" fill-opacity="0.88" stroke="' + pal[k][1] + '" stroke-width="0.018"/>');
+        parts.push('<text x="' + (c + 0.5) + '" y="' + (r + 0.51) + '" font-size="0.15" font-weight="700" fill="' + pal[k][1] + '">R' + (k + 1) + '</text>');
       }
       parts.push('</g>');
     }
 
     if (S.sel >= 0) {
       const r = (S.sel / 9) | 0, c = S.sel % 9;
-      parts.push('<rect x="' + (c + 0.03) + '" y="' + (r + 0.03) + '" width="0.94" height="0.94" rx="0.08" fill="none" stroke="#4F46E5" stroke-width="0.055"/>');
+      parts.push('<rect x="' + (c + 0.03) + '" y="' + (r + 0.03) + '" width="0.94" height="0.94" rx="0.08" fill="none" stroke="' +
+        (hc ? '#05070D' : '#4F46E5') + '" stroke-width="' + (hc ? 0.085 : 0.055) + '"/>');
     }
     if (create && dragStart >= 0 && dragCur >= 0 && S.create.tool === 'rect') {
       const r1 = Math.min(((dragStart / 9) | 0), ((dragCur / 9) | 0)), r2 = Math.max(((dragStart / 9) | 0), ((dragCur / 9) | 0));
@@ -1904,7 +1876,10 @@ if (typeof globalThis !== 'undefined') globalThis.SC = SC;
   /* ---------------- 高对比色 ---------------- */
   function applyHC(on) {
     S.hc = !!on;
-    document.body.classList.toggle('hc', S.hc);
+    const wrap = document.querySelector('.board-wrap');
+    if (wrap) wrap.classList.toggle('hc', S.hc);
+    const sw = document.querySelector('#chkHC');
+    if (sw) sw.checked = S.hc;
     try { localStorage.setItem('jsw.hc', S.hc ? '1' : '0'); } catch (e) {}
     renderBoard();
   }
@@ -2163,6 +2138,7 @@ if (typeof globalThis !== 'undefined') globalThis.SC = SC;
     }
     setMode('play');
   })();
+
 
 
 })();
