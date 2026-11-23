@@ -134,20 +134,18 @@ const validGrid = (g) => {
   ok(kept, 'all preset digits survive digging');
 }
 
-// 6. default puzzle embedded in the app
+// 6. random play puzzle builder (1..9 regions, custom givens)
 {
-  const R = /const DEFAULT_R = '([0-9]+)'/.exec(html)[1];
-  const Sg = /const DEFAULT_S = '([0-9]+)'/.exec(html)[1];
-  const G = /const DEFAULT_G = '([0-9]+)'/.exec(html)[1];
-  const regions = Int8Array.from(R.split('').map(Number));
-  const sol = Int8Array.from(Sg.split('').map(Number));
-  const givens = Int8Array.from(G.split('').map(Number));
-  ok(SC.validateRegions(regions).ok, 'default regions valid');
-  eq(SC.validateRegions(regions).defined, 9, 'default has 9 regions');
-  ok(SC.regionsMatchSolution(sol, regions), 'default regions match solution');
-  const res = SC.solver(givens, regions, { limit: 3 });
-  eq(res.count, 1, 'default puzzle unique');
-  eq(Array.from(res.first).join(''), Sg, 'default solves to embedded solution');
+  for (const n of [1, 3, 6, 9]) {
+    const rng = SC.mulberry32(1000 + n);
+    const p = SC.buildPuzzle(rng, { regions: n, givens: 32, iters: 600 });
+    const v = SC.validateRegions(p.regions);
+    ok(v.ok, 'buildPuzzle regions valid n=' + n, JSON.stringify(v.problems));
+    eq(v.defined, n, 'buildPuzzle keeps exactly ' + n + ' regions');
+    ok(SC.regionsMatchSolution(p.solution, p.regions), 'regions match solution n=' + n);
+    eq(SC.solver(p.givens, p.regions, { limit: 2 }).count, 1, 'buildPuzzle unique n=' + n);
+    ok(p.givensCount >= 32, 'givens >= target n=' + n, 'got ' + p.givensCount);
+  }
 }
 
 // 7. checkGrid / conflicts / candidates

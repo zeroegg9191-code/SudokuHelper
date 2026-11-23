@@ -149,6 +149,63 @@ input[type=range]{accent-color:var(--accent)}
 .hidden{display:none!important}
 .kbd{display:inline-block;padding:1px 5px;border:1px solid #DDE1EC;border-bottom-width:2px;border-radius:4px;
   font-size:10px;color:#6B7280;background:#fff;margin:0 1px}
+.loading{position:absolute;inset:0;display:none;place-items:center;background:rgba(255,255,255,.9);z-index:12;text-align:center}
+.loading.on{display:grid}
+.spinner{width:26px;height:26px;border-radius:50%;border:3px solid #E5E8F2;border-top-color:#4F46E5;margin:0 auto 10px;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loadingText{font-size:12px;color:#5B6376;font-weight:600}
+.footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:26px;padding-top:14px;
+  border-top:1px solid var(--line);font-size:12px;color:var(--muted);flex-wrap:wrap}
+.footer a{color:var(--accent);text-decoration:none;font-weight:600}
+.footer a:hover{text-decoration:underline}
+
+/* ---------- 高对比色模式 ---------- */
+body.hc{background:#07090E;color:#F5F7FB;--ink:#F5F7FB;--muted:#C2CADA;--line:#333B4D;--card:#12161E;
+  --bg:#07090E;--accent:#8B93FF;--shadow:0 1px 2px rgba(0,0,0,.6),0 14px 32px -14px rgba(0,0,0,.9)}
+body.hc .card{background:#12161E;border-color:#333B4D}
+body.hc .topbar .brand b{color:#fff}
+body.hc .tabs{background:#1B2130}
+body.hc .tabs button{color:#CBD3E1}
+body.hc .tabs button.on{background:#39415A;color:#fff}
+body.hc .chip{background:#1B2130;border-color:#39415A;color:#E2E8F4}
+body.hc .btn{background:#1B2130;border-color:#3A4358;color:#F0F3F9}
+body.hc .btn:hover{background:#242C3D}
+body.hc .btn.primary{background:linear-gradient(140deg,#6D74FF,#9B5BFF);color:#fff}
+body.hc .tool{background:#171C27;border-color:#333B4D;color:#D7DEEA}
+body.hc .tool:hover{background:#202736}
+body.hc .tool.on{background:#2B3160;border-color:#6D74FF;color:#D9DBFF}
+body.hc .pill{background:#1B2130;border-color:#3A4358;color:#E2E8F4}
+body.hc .pill.green{background:#0E2F1C;border-color:#2A7A47;color:#9BF0B9}
+body.hc .pill.red{background:#3A1414;border-color:#8C3030;color:#FFBDBD}
+body.hc .pill.amber{background:#38290B;border-color:#8A6A16;color:#FFD98A}
+body.hc .pill.blue{background:#1D2350;border-color:#4B54A8;color:#C9CDFF}
+body.hc .slot{background:#171C27;border-color:#333B4D;color:#F0F3F9}
+body.hc .slot.on{outline-color:#8B93FF}
+body.hc .slot.warn{background:#38290B;border-color:#8A6A16;color:#FFD98A}
+body.hc .slot.idle{color:#8C97AB}
+body.hc .kbd{background:#1B2130;border-color:#3A4358;color:#D7DEEA}
+body.hc .bar,body.hc .prog{background:#263041}
+body.hc .day{background:#171C27;border-color:#333B4D;color:#B9C2D3}
+body.hc .day.ok{background:#0E2F1C;border-color:#2A7A47;color:#9BF0B9}
+body.hc .day.today{background:#232A3B;color:#F0F3F9;outline-color:#8B93FF}
+body.hc .hintline{color:#C2CADA}
+body.hc .hintline b{color:#AEB4FF}
+body.hc .footnote,body.hc .stat .k{color:#98A2B8}
+body.hc .muted{color:#A8B2C6}
+body.hc .range{color:#D7DEEA}
+body.hc .overlay{background:rgba(7,9,14,.9);color:#F5F7FB}
+body.hc .loading{background:rgba(7,9,14,.92)}
+body.hc #loadingText{color:#E2E8F4}
+body.hc .spinner{border-color:#333B4D;border-top-color:#8B93FF}
+body.hc .modal-card{background:#12161E;border:1px solid #333B4D}
+body.hc .modal-card p{color:#B9C2D3}
+body.hc .modal-card textarea{background:#0C1017;border-color:#333B4D;color:#F0F3F9}
+body.hc .board-wrap{background:#fff;box-shadow:0 0 0 2px #6D74FF,0 2px 8px rgba(0,0,0,.6)}
+body.hc #errbox{background:#3A1414;border-color:#8C3030;color:#FFBDBD}
+body.hc .footer a{color:#AEB4FF}
+body.hc .switch input{background:#3A4358}
+body.hc .switch input:checked{background:#6D74FF}
+body.hc .switch span{color:#E2E8F4}
 </style>
 </head>
 <body>
@@ -172,6 +229,12 @@ input[type=range]{accent-color:var(--accent)}
     <div class="card board-card">
       <div class="board-wrap">
         <svg id="board" viewBox="0 0 9 9" role="img" aria-label="异形数独棋盘"></svg>
+        <div class="loading" id="loading">
+          <div>
+            <div class="spinner"></div>
+            <div id="loadingText">正在生成题目…</div>
+          </div>
+        </div>
         <div class="overlay" id="overlay">
           <div>
             <h3 id="ovTitle">完成！</h3>
@@ -193,6 +256,13 @@ input[type=range]{accent-color:var(--accent)}
     <aside>
       <!-- 解题 / 每日一题 共用面板 -->
       <div id="panel-game">
+        <div class="card pad hidden" id="genBox" style="margin-bottom:12px">
+          <div class="card-head"><span class="t">随机题目</span><span class="muted">每次都不一样</span></div>
+          <div class="range"><span>区块</span><input type="range" id="playRegions" min="1" max="9" value="9"><b id="playRegionsVal">9</b></div>
+          <div class="range"><span>提示数</span><input type="range" id="playGivens" min="20" max="50" value="34"><b id="playGivensVal">34</b></div>
+          <button class="btn primary" id="btnNewPuzzle" style="margin-top:10px;width:100%">生成新题</button>
+        </div>
+
         <div class="card pad hidden" id="dailyBox">
           <div class="card-head"><span class="t">每日一题</span><span class="muted" id="dailyDate">—</span></div>
           <div class="hintline" id="dailyHint" style="margin-top:0">每天一道固定的异形数独，全平台同一题。</div>
@@ -293,6 +363,11 @@ input[type=range]{accent-color:var(--accent)}
       </div>
     </aside>
   </div>
+
+  <footer class="footer">
+    <div>SudokuHelper · MIT License · <a href="https://github.com/zeregg9191-code" target="_blank" rel="noopener noreferrer">GitHub @zeregg9191-code</a></div>
+    <label class="switch" style="margin:0"><input type="checkbox" id="chkHC"><span>高对比色模式</span></label>
+  </footer>
 </div>
 
 <div class="modal" id="importModal">
@@ -307,6 +382,13 @@ input[type=range]{accent-color:var(--accent)}
   </div>
 </div>
 
+<div class="modal" id="confirmModal">
+  <div class="modal-card">
+    <h3 id="cfTitle"></h3>
+    <p id="cfText"></p>
+    <div class="btnrow" id="cfBtns" style="justify-content:flex-end"></div>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -558,6 +640,28 @@ const SC = (function () {
     return reg;
   }
 
+  // 只保留其中 n 个区域，其余格子变成“无区域”
+  function keepRegions(reg9, n, rng) {
+    if (n >= 9) return Int8Array.from(reg9);
+    const ids = shuffle([0, 1, 2, 3, 4, 5, 6, 7, 8], rng);
+    const keep = new Set(ids.slice(0, Math.max(1, n)));
+    const out = new Int8Array(81);
+    for (let i = 0; i < 81; i++) out[i] = keep.has(reg9[i]) ? reg9[i] : -1;
+    return out;
+  }
+
+  // 同步版：一次造一道随机题（测试 / 无进度需求时用）
+  function buildPuzzle(rng, opts) {
+    opts = opts || {};
+    const regionCount = Math.max(1, Math.min(9, opts.regions || 9));
+    const target = Math.max(1, Math.min(50, opts.givens || 34));
+    const sol = genSolution(rng);
+    const reg9 = meltRegions(rng, sol, opts.iters || 1400);
+    const regions = keepRegions(reg9, regionCount, rng);
+    const dug = digPuzzle(rng, sol, regions, target);
+    return { solution: sol, regions, givens: dug.puzzle, givensCount: dug.givens };
+  }
+
   /* ---------- validation: 1..9 regions, exactly 9 cells each, connectivity NOT required ---------- */
   function regionCells(regions, k) {
     const out = [];
@@ -761,7 +865,8 @@ const SC = (function () {
 
   return {
     idx, popcount, mulberry32, hashStr, shuffle, neighbors, isConnected,
-    genSolution, solver, boxPartition, meltStep, meltRegions, regionCells, validateRegions, regionsMatchSolution,
+    genSolution, solver, boxPartition, meltStep, meltRegions, keepRegions, buildPuzzle,
+    regionCells, validateRegions, regionsMatchSolution,
     makeDigger, digPuzzle, digExact, unitList, conflictsOf, candidatesAt, checkGrid,
     encodeCode, decodeCode, buildDaily
   };
@@ -790,9 +895,6 @@ if (typeof globalThis !== 'undefined') globalThis.SC = SC;
     ['#D3EDC3', '#689B54'], ['#C2E9DF', '#3E9384'], ['#CFDEF8', '#567FC0'],
     ['#DCD3F8', '#7361B8'], ['#EFD0F3', '#9863AD'], ['#F9CCE0', '#B45C82']
   ];
-  const DEFAULT_R = '666444277664444277666644277001112227001812127008811127088553333088555533088555333';
-  const DEFAULT_S = '758149623263875941491326578845912736376584219129637485687451392932768154514293867';
-  const DEFAULT_G = '050040600003805000001000570800902706000500019120037480000001302932000150000090067';
 
   const S = {
     mode: 'play',
@@ -814,6 +916,7 @@ if (typeof globalThis !== 'undefined') globalThis.SC = SC;
     elapsed: 0,
     timer: null,
     playLoaded: false,
+    hc: false,
     create: { slot: 0, tool: 'brush', puzzle: null, givensCount: 0, busy: false },
     daily: { date: null, data: null }
   };
@@ -916,9 +1019,10 @@ if (typeof globalThis !== 'undefined') globalThis.SC = SC;
     parts.push('</g>');
 
     // lines
-    const thin = '<g stroke="#1D2333" stroke-opacity="0.11" stroke-width="0.017">';
-    const box = '<g stroke="#666E80" stroke-width="0.048">';
-    const thick = '<g stroke="#161B2E" stroke-width="0.064" stroke-linecap="square">';
+    const hc = !!S.hc;
+    const thin = '<g stroke="#1D2333" stroke-opacity="' + (hc ? '0.22' : '0.11') + '" stroke-width="' + (hc ? '0.022' : '0.017') + '">';
+    const box = '<g stroke="' + (hc ? '#2F3849' : '#666E80') + '" stroke-width="' + (hc ? '0.06' : '0.048') + '">';
+    const thick = '<g stroke="#0B0D12" stroke-width="' + (hc ? '0.08' : '0.064') + '" stroke-linecap="square">';
     const dash = '<g stroke="#8E97AC" stroke-width="0.030" stroke-dasharray="0.14 0.10">';
     let t1 = '', t2 = '', t3 = '', t4 = '';
     for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) {
@@ -1677,9 +1781,11 @@ if (typeof globalThis !== 'undefined') globalThis.SC = SC;
     $('#panel-game').classList.toggle('hidden', mode === 'create');
     $('#panel-create').classList.toggle('hidden', mode !== 'create');
     $('#dailyBox').classList.toggle('hidden', mode !== 'daily');
+    $('#genBox').classList.toggle('hidden', mode !== 'play');
     $('#candBox').classList.toggle('hidden', mode !== 'play');
     $('#btnShareDaily').classList.toggle('hidden', mode !== 'daily' || !S.won);
     $('#overlay').classList.remove('on');
+    hideLoading();
     stopTimer();
     if (mode === 'create') {
       createInit();
@@ -1688,25 +1794,119 @@ if (typeof globalThis !== 'undefined') globalThis.SC = SC;
       loadDaily();
       $('#topChipText').textContent = '每日一题';
     } else {
-      if (!opts.keep && !S.playLoaded) loadDefault();
-      S.playLoaded = true;
-      $('#topChipText').textContent = '异形 · 标准';
+      if (!opts.keep && !S.playLoaded) newPlayPuzzle();
+      else $('#topChipText').textContent = '随机题';
     }
     if (mode !== 'play') { S.showCand = false; $('#chkCand').checked = false; }
   }
 
-  function loadDefault() {
-    S.regions = Int8Array.from(DEFAULT_R.split('').map(Number));
-    S.solution = Int8Array.from(DEFAULT_S.split('').map(Number));
-    S.givens = Int8Array.from(DEFAULT_G.split('').map(Number));
-    S.grid = Int8Array.from(S.givens);
+  /* ---------------- 随机题目 ---------------- */
+  const GEN_KEY = 'jsw.play.gen';
+
+  function genOpts() {
+    const o = STORE.get(GEN_KEY, null);
+    return {
+      regions: o && o.regions ? Math.max(1, Math.min(9, o.regions)) : 9,
+      givens: o && o.givens ? Math.max(20, Math.min(50, o.givens)) : 34
+    };
+  }
+  function saveGenOpts() {
+    STORE.set(GEN_KEY, { regions: +$('#playRegions').value, givens: +$('#playGivens').value });
+  }
+
+  function showLoading(text) {
+    $('#loadingText').textContent = text;
+    $('#loading').classList.add('on');
+  }
+  function setLoading(pct, text) {
+    $('#loadingText').textContent = text + ' ' + Math.round(pct) + '%';
+  }
+  function hideLoading() { $('#loading').classList.remove('on'); }
+
+  let genToken = 0;
+  function newPlayPuzzle() {
+    const token = ++genToken;
+    const regionCount = Math.max(1, Math.min(9, +$('#playRegions').value || 9));
+    const target = Math.max(20, Math.min(50, +$('#playGivens').value || 34));
+    saveGenOpts();
+    showLoading('正在生成题目…');
+    const rng = SC.mulberry32((Math.random() * 1e9) | 0);
+    const sol = SC.genSolution(rng);
+    const reg9 = SC.boxPartition();
+    const TOTAL = 1400, CHUNK = 100;
+    let done = 0;
+    setTimeout(function meltTick() {
+      if (token !== genToken) return;
+      SC.meltStep(rng, sol, reg9, Math.min(CHUNK, TOTAL - done));
+      done += CHUNK;
+      setLoading(done / TOTAL * 70, '正在生成异形区域…');
+      if (done < TOTAL) { setTimeout(meltTick, 0); return; }
+      const regions = SC.keepRegions(reg9, regionCount, rng);
+      const d = SC.makeDigger(rng, sol, regions, target, null);
+      (function digTick() {
+        if (token !== genToken) return;
+        let n = 0;
+        while (n < 6 && !d.done()) { d.step(); n++; }
+        const removed = 81 - d.givens;
+        setLoading(70 + removed / Math.max(1, 81 - target) * 30, '正在挖空并校验唯一解…');
+        if (!d.done()) { setTimeout(digTick, 0); return; }
+        const res = d.result();
+        applyPlayPuzzle(regions, sol, res.puzzle);
+        hideLoading();
+        toast('新题目：' + regionCount + ' 个区域 · ' + res.givens + ' 个提示数');
+      })();
+    }, 20);
+  }
+
+  function applyPlayPuzzle(regions, sol, puzzle) {
+    S.regions = regions;
+    S.solution = sol;
+    S.givens = Int8Array.from(puzzle);
+    S.grid = Int8Array.from(puzzle);
     S.notes = new Uint16Array(81);
     S.fixed = new Int8Array(81);
     S.sel = -1; S.hist = []; S.future = [];
     S.hints = 0; S.errors = 0; S.elapsed = 0; S.won = false;
     S.playLoaded = true;
     stopTimer();
+    $('#overlay').classList.remove('on');
+    const n = SC.validateRegions(regions).defined;
+    $('#topChipText').textContent = '随机题 · ' + n + ' 区';
     renderBoard(); renderPanels();
+  }
+
+  /* ---------------- 通用确认弹窗 ---------------- */
+  function confirmDialog(title, text, buttons) {
+    $('#cfTitle').textContent = title;
+    $('#cfText').textContent = text;
+    const box = $('#cfBtns');
+    box.innerHTML = '';
+    for (const b of buttons) {
+      const el = document.createElement('button');
+      el.className = 'btn' + (b.primary ? ' primary' : '');
+      el.textContent = b.label;
+      el.addEventListener('click', () => { closeConfirm(); if (b.action) b.action(); });
+      box.appendChild(el);
+    }
+    $('#confirmModal').classList.add('on');
+  }
+  function closeConfirm() { $('#confirmModal').classList.remove('on'); }
+
+  function askShareThen(next) {
+    const code = SC.encodeCode(S.regions, S.create.puzzle);
+    confirmDialog('要复制分享码吗？', '离开出题页前，可以把这道题的分享码复制到剪贴板（' + code.length + ' 字符）。', [
+      { label: '复制并离开', primary: true, action: () => { copyText(code, '分享码已复制'); next(); } },
+      { label: '不复制', action: () => next() },
+      { label: '取消', action: () => {} }
+    ]);
+  }
+
+  /* ---------------- 高对比色 ---------------- */
+  function applyHC(on) {
+    S.hc = !!on;
+    document.body.classList.toggle('hc', S.hc);
+    try { localStorage.setItem('jsw.hc', S.hc ? '1' : '0'); } catch (e) {}
+    renderBoard();
   }
 
   /* ---------------- events ---------------- */
@@ -1816,19 +2016,37 @@ if (typeof globalThis !== 'undefined') globalThis.SC = SC;
     }
   });
 
-  for (const b of $$('#tabs button')) b.addEventListener('click', () => setMode(b.dataset.tab));
+  for (const b of $$('#tabs button')) b.addEventListener('click', () => {
+    const target = b.dataset.tab;
+    if (target === S.mode) return;
+    if (S.mode === 'create' && S.create.puzzle) { askShareThen(() => setMode(target)); return; }
+    setMode(target);
+  });
   $('#btnCheck').addEventListener('click', validateAndReport);
   $('#btnReset').addEventListener('click', () => {
-    if (S.mode === 'daily') {
-      S.grid = Int8Array.from(S.givens);
-      S.notes = new Uint16Array(81);
-      S.sel = -1; S.hist = []; S.future = [];
-      S.elapsed = 0; S.hints = 0; S.errors = 0; S.won = false;
-      stopTimer(); renderBoard(); renderPanels();
-    } else loadDefault();
+    S.grid = Int8Array.from(S.givens);
+    S.notes = new Uint16Array(81);
+    S.sel = -1; S.hist = []; S.future = [];
+    S.elapsed = 0; S.hints = 0; S.errors = 0; S.won = false;
+    stopTimer();
+    $('#overlay').classList.remove('on');
+    renderBoard(); renderPanels();
     toast('已重新开始');
   });
   $('#btnHint').addEventListener('click', doHint);
+  $('#btnNewPuzzle').addEventListener('click', () => newPlayPuzzle());
+  $('#playRegions').addEventListener('input', (e) => {
+    $('#playRegionsVal').textContent = e.target.value;
+    saveGenOpts();
+  });
+  $('#playGivens').addEventListener('input', (e) => {
+    $('#playGivensVal').textContent = e.target.value;
+    saveGenOpts();
+  });
+  $('#chkHC').addEventListener('change', (e) => applyHC(e.target.checked));
+  $('#confirmModal').addEventListener('click', (e) => {
+    if (e.target && e.target.id === 'confirmModal') closeConfirm();
+  });
   $('#chkCand').addEventListener('change', (e) => {
     S.showCand = e.target.checked;
     renderBoard();
@@ -1892,7 +2110,7 @@ if (typeof globalThis !== 'undefined') globalThis.SC = SC;
   $('#ovBtn').addEventListener('click', () => {
     if (S.mode === 'daily') { shareDaily(); return; }
     $('#overlay').classList.remove('on');
-    if (S.mode === 'play') loadDefault();
+    if (S.mode === 'play') newPlayPuzzle();
     else createInit();
   });
 
@@ -1905,11 +2123,25 @@ if (typeof globalThis !== 'undefined') globalThis.SC = SC;
   buildTools();
   renderDailyDots();
 
+  (function initPrefs() {
+    const o = genOpts();
+    $('#playRegions').value = o.regions;
+    $('#playRegionsVal').textContent = o.regions;
+    $('#playGivens').value = o.givens;
+    $('#playGivensVal').textContent = o.givens;
+    let hc = false;
+    const q = new URLSearchParams(location.search).get('hc');
+    if (q === '1') hc = true;
+    else if (q === '0') hc = false;
+    else { try { hc = localStorage.getItem('jsw.hc') === '1'; } catch (e) {} }
+    $('#chkHC').checked = hc;
+    applyHC(hc);
+  })();
+
   (function boot() {
     const tab = new URLSearchParams(location.search).get('tab');
     if (tab === 'create' || tab === 'daily') {
       setMode(tab);
-      S.playLoaded = true;
       return;
     }
     const hash = (location.hash || '').replace(/^#/, '');
@@ -1929,8 +2161,9 @@ if (typeof globalThis !== 'undefined') globalThis.SC = SC;
         return;
       }
     }
-    loadDefault();
+    setMode('play');
   })();
+
 
 })();
 </script>
