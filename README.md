@@ -6,62 +6,6 @@
 
 ![解题页](ui/app-desktop.png)
 
-## 在线游玩 & 部署到 GitHub Pages
-
-仓库已经配好开箱即用的结构：
-
-```
-index.html      ← GitHub Pages 的入口，自动跳转到 sudoku.html（保留 #分享码 和 ?tab= 参数）
-sudoku.html     ← 真正的主程序，单文件
-.nojekyll       ← 告诉 Pages 不要跑 Jekyll
-LICENSE         ← MIT
-```
-
-### 三步上线
-
-1. **建仓库（必须是 Public）**：GitHub 免费账户的**私有仓库不能开 Pages**。
-2. **推代码**（在本目录执行）：
-
-   ```bash
-   git init
-   git add -A
-   git commit -m "feat: SudokuHelper 异形数独"
-   git branch -M main
-   git remote add origin https://github.com/<你的用户名>/SudokuHelper.git
-   git push -u origin main
-   ```
-
-3. **开 Pages**：仓库 → `Settings` → `Pages` →
-   `Build and deployment` 的 Source 选 **Deploy from a branch** →
-   分支 `main`、目录 `/ (root)` → `Save`。
-
-等 1–2 分钟，访问：
-
-```
-https://<你的用户名>.github.io/SudokuHelper/
-```
-
-之后每次 `git push`，Pages 会自动重新发布（大约 1 分钟）。
-
-### 关于分享文案里的网址
-
-`sudoku.html` 顶部有 `const APP_URL = ''`：
-
-- **留空**（默认）：分享时自动使用**当前网页地址**，部署后就是正确链接，不用改代码；
-- 想固定成别的地址（比如仓库主页），填进去即可。
-
-### 如果打不开
-
-| 现象 | 原因 / 处理 |
-|---|---|
-| 404 | 确认 `index.html` 在仓库**根目录**；Pages 首次发布要等 1–2 分钟 |
-| 打开是 README 而不是程序 | 仓库里没有 `index.html`，被当作普通仓库页 |
-| 样式/字体重叠 | 浏览器过旧，换 Chrome / Edge 最新版 |
-| 分享码粘不出来 | 剪贴板 API 需要 HTTPS；Pages 默认 HTTPS，本地 `file://` 会退化为选中复制 |
-
-> 也可以不用分支部署，改用 GitHub Actions（`actions/deploy-pages`）发布，流程更可控，但对这种纯静态单文件项目意义不大。
-
----
 
 ## 一、核心规则
 
